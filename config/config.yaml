@@ -1,0 +1,11 @@
+---
+wakakey: "key for wakatime api"
+telegramtoken: "obvious telegram token"
+mothership: -1111111 #chat ID of main chat for critical notifications - group invite for now
+# postgres credentials and db name
+postgreshost : "127.0.0.1"
+postgresport : "5432"
+postgresuser : "gwp"
+postgrespass : "gwp"
+postgresdbname : "gwp"
+
