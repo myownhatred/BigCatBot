@@ -2,8 +2,10 @@ package bigcat
 
 import (
 	"Guenhwyvar/servitor"
+	"fmt"
 	"log"
 
+	cron "github.com/robfig/cron/v3"
 	tele "gopkg.in/telebot.v3"
 )
 
@@ -12,6 +14,7 @@ type BigCat struct {
 	serv     *servitor.Servitor
 	bigBrain *BigBrain
 	brain    *silly
+	clock    *cron.Cron
 	storage  string
 }
 
@@ -37,13 +40,20 @@ func New(tgBot *tele.Bot, serv *servitor.Servitor, str string) *BigCat {
 		serv:     serv,
 		brain:    flag,
 		bigBrain: &BigBrain{},
+		clock:    cron.New(cron.WithSeconds()),
 		storage:  str,
 	}
 }
 
 func (c *BigCat) Start() {
 	c.loadComfig()
+	c.clock.Start()
+	c.clock.AddFunc("*/15 * * * * *", func() {
+		c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, "начинаем набалтывать")
+	})
+	c.clock.AddFunc("*/15 * * * * *", func() { fmt.Println("miun") })
 	c.tgBot.Start()
+
 }
 
 func (c *BigCat) loadComfig() {
