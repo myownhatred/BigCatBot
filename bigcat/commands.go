@@ -1,6 +1,7 @@
 package bigcat
 
 import (
+	bigcat "Guenhwyvar/bigcat/games"
 	"Guenhwyvar/config"
 	"Guenhwyvar/entities"
 	"Guenhwyvar/lib/memser"
@@ -54,6 +55,8 @@ const (
 	NewTimer    = "/newtimewo"
 	// dnd stuff
 	RollChar = "/rollcharhard"
+	// card stuff
+	Card = "/card"
 )
 
 func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, comfig *config.AppConfig) error {
@@ -111,6 +114,8 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, comfi
 		return FreeMawRep(c, serv)
 	case RollChar:
 		return DnDRollChar(c)
+	case Card:
+		return GetRandomCard(c)
 	default:
 		return nil
 	}
@@ -335,6 +340,15 @@ func DnDRollChar(c tele.Context) error {
 	message += "Мудрость: " + dice3of4() + "\n"
 	message += "Харя: " + dice3of4() + "\n"
 	return c.Send(message)
+}
+
+func GetRandomCard(c tele.Context) error {
+	var deck bigcat.Deck
+	deck.NewStack()
+	card := deck.TopDeck()
+	get := card.OneShot()
+
+	return c.Send(get)
 }
 
 func dice3of4() (scrib string) {

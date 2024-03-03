@@ -75,7 +75,6 @@ func (bh *BotHandler) AddHandler() {
 		_ = c.Respond(&tele.CallbackResponse{})
 		return c.Send("копочка-наёбочка")
 	})
-
 	bh.tgbot.Handle(tele.OnPhoto, func(c tele.Context) error {
 		return nil
 	})

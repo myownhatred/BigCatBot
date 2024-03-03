@@ -48,12 +48,11 @@ func New(tgBot *tele.Bot, serv *servitor.Servitor, str string) *BigCat {
 func (c *BigCat) Start() {
 	c.loadComfig()
 	c.clock.Start()
-	c.clock.AddFunc("*/15 * * * * *", func() {
-		c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, "начинаем набалтывать")
-	})
+	//c.clock.AddFunc("*/15 * * * * *", func() {
+	//	c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, "начинаем набалтывать")
+	//})
 	c.clock.AddFunc("*/15 * * * * *", func() { fmt.Println("miun") })
 	c.tgBot.Start()
-
 }
 
 func (c *BigCat) loadComfig() {
