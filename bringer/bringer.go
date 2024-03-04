@@ -10,6 +10,8 @@ import (
 	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
+	twitterscraper "github.com/n0madic/twitter-scraper"
 )
 
 type WakaStuff interface {
@@ -45,6 +47,10 @@ type Comfiger interface {
 	GetAppComfigFromViper() (config *config.AppConfig, err error)
 }
 
+type Twitter interface {
+	TwitterGetVideo(link string) (filePath string, err error)
+}
+
 type Bringer struct {
 	gormPost *gorm.DB
 	db       *sql.DB
@@ -54,9 +60,10 @@ type Bringer struct {
 	TimeWithOut
 	FreeMaw
 	Comfiger
+	Twitter
 }
 
-func NewBringer(r *resty.Client, v *viper.Viper, db *sql.DB) *Bringer {
+func NewBringer(r *resty.Client, scrap *twitterscraper.Scraper, v *viper.Viper, db *sql.DB) *Bringer {
 	gormP, err := gorm.Open(postgres.New(postgres.Config{
 		Conn: db,
 	}), &gorm.Config{})
@@ -73,5 +80,6 @@ func NewBringer(r *resty.Client, v *viper.Viper, db *sql.DB) *Bringer {
 		AnimeMaw:    NewAnimeMawPostgres(gormP, r),
 		TimeWithOut: NewTimeWithOutPostgres(db),
 		FreeMaw:     NewFreeMawPostgres(db),
+		Twitter:     NewTwitterScrapper(scrap),
 	}
 }

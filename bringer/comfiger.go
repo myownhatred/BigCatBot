@@ -20,6 +20,9 @@ func NewComfigerViper(v *viper.Viper) *ComfigViper {
 
 func (c *ComfigViper) GetAppComfigFromViper() (*config.AppConfig, error) {
 	var comfig *config.AppConfig = new(config.AppConfig)
+	if c.v.IsSet("twittercookie") {
+		comfig.TwitterCookie = c.v.GetString("twittercookie")
+	}
 	if c.v.IsSet("jokepath") {
 		comfig.JokePath = c.v.GetString("jokepath")
 	} else {
@@ -33,4 +36,5 @@ func (c *ComfigViper) GetAppComfigFromViper() (*config.AppConfig, error) {
 		err := fmt.Errorf("no mothership config value set")
 		return comfig, err
 	}
+
 }

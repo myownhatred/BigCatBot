@@ -49,7 +49,7 @@ func (m *AnimeMawServ) UploadOpenings(filePath string) (report string, err error
 	reader := csv.NewReader(file)
 	reader.FieldsPerRecord = 2
 	lines, _ := reader.ReadAll()
-	report += fmt.Sprintf("Всего линий в файле на зяливку: %d\n", lines)
+	report += fmt.Sprintf("Всего линий в файле на зяливку: %d\n", len(lines))
 
 	uploadStuff := make([]entities.AnimeOpening, 0)
 

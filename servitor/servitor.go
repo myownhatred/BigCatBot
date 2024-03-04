@@ -38,6 +38,10 @@ type Comfiger interface {
 	GetAppComfig() (comfig *config.AppConfig, err error)
 }
 
+type Twitter interface {
+	TwitterGetVideo(link string) (filePath string, err error)
+}
+
 type Servitor struct {
 	WakaStuff
 	Memser
@@ -45,6 +49,7 @@ type Servitor struct {
 	FreeMaw
 	TimeWithOut
 	Comfiger
+	Twitter
 }
 
 func NewServitor(bringer *bringer.Bringer) *Servitor {
@@ -55,5 +60,6 @@ func NewServitor(bringer *bringer.Bringer) *Servitor {
 		FreeMaw:     NewFreeMawServ(bringer.FreeMaw),
 		TimeWithOut: NewTimeWithOutServ(bringer.TimeWithOut),
 		Comfiger:    NewComfigerServ(bringer.Comfiger),
+		Twitter:     NewTwitterServ(bringer.Twitter),
 	}
 }

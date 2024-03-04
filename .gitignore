@@ -3,6 +3,7 @@
 #
 # Binaries for programs and plugins
 Guenhwyvar
+cookies.json
 *.exe
 *.exe~
 *.dll

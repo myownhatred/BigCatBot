@@ -62,6 +62,15 @@ const (
 func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, comfig *config.AppConfig) error {
 	msgText := strings.Split(c.Message().Text, " ")
 	command := msgText[0]
+	// check if link (twitter)
+	if strings.HasPrefix(command, "https://twitter.com") || strings.HasPrefix(command, "https://x.com") {
+		pathVid, err := serv.TwitterGetVideo(command)
+		if err != nil {
+			return c.Send(err.Error())
+		}
+		vido := &tele.Video{File: tele.FromDisk(pathVid)}
+		return c.Send(vido)
+	}
 	// full command (command@botname) handling
 	if len(strings.Split(command, "@")) > 1 {
 		//fmt.Println("long command incoming")

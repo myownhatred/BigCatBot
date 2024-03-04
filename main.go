@@ -5,12 +5,15 @@ import (
 	"Guenhwyvar/bringer"
 	"Guenhwyvar/servitor"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	twitterscraper "github.com/n0madic/twitter-scraper"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	tele "gopkg.in/telebot.v3"
@@ -23,6 +26,16 @@ const (
 )
 
 func main() {
+
+	scrap := twitterscraper.New()
+
+	f, _ := os.Open("cookies.json")
+	var cookies []*http.Cookie
+	json.NewDecoder(f).Decode(&cookies)
+	scrap.SetCookies(cookies)
+	if scrap.IsLoggedIn() {
+		fmt.Println("Twitter is Ok")
+	}
 
 	configFile := pflag.String("config", "", "Path to config file")
 	pflag.Parse()
@@ -54,7 +67,7 @@ func main() {
 	// close it, just in case
 	defer dbPostgres.Close()
 
-	bringa := bringer.NewBringer(resty.New(), dodgeViper, dbPostgres)
+	bringa := bringer.NewBringer(resty.New(), scrap, dodgeViper, dbPostgres)
 	serva := servitor.NewServitor(bringa)
 
 	value2 := dodgeViper.GetString("telegramtoken")
