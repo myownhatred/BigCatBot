@@ -167,7 +167,7 @@ func DilemmaPoll(c tele.Context) error {
 	if len(elements) == 3 {
 		question = elements[2]
 	}
-	if len(elements) <= 3 {
+	if len(elements) < 3 {
 		return c.Send("для генерации опроса дай строку вида левая кнопка,правая кнопка,вопрос внизу")
 	}
 	pathImg, err := memser.Choice(elements[0], elements[1], question)
