@@ -1,8 +1,10 @@
 package memser
 
 import (
+	"fmt"
 	"image/color"
 	"math"
+	"strconv"
 	"strings"
 
 	"github.com/fogleman/gg"
@@ -111,6 +113,40 @@ func HoldMeme(input string) (string, error) {
 	}
 
 	return pathImg, nil
+}
+
+func DaysWO(days int, text string) (output string, err error) {
+	bgImage, err := gg.LoadImage("./assets/days_witho.jpg")
+	if err != nil {
+		return output, fmt.Errorf("не удалось загрузить основу мэма дней без:%s", err.Error())
+	}
+
+	imgH := bgImage.Bounds().Dy()
+	imgW := bgImage.Bounds().Dx()
+
+	dc := gg.NewContext(imgW, imgH)
+	dc.DrawImage(bgImage, 0, 0)
+
+	font, err := truetype.Parse(goregular.TTF)
+	if err != nil {
+		return output, fmt.Errorf("не удалось загрузить щрифт для мэма дней без:%s", err.Error())
+	}
+
+	faceNumber := truetype.NewFace(font, &truetype.Options{Size: 40})
+	faceText := truetype.NewFace(font, &truetype.Options{Size: 24})
+	dc.SetFontFace(faceText)
+
+	dc.SetRGB(0, 0, 0)
+	// text
+	x := float64(480)
+	y := float64(150)
+	dc.DrawStringWrapped(text, x, y, 0.5, 0.5, 275, 1.5, gg.AlignCenter)
+	x = float64(115)
+	y = float64(100)
+	dc.SetFontFace(faceNumber)
+	dc.DrawStringWrapped(strconv.Itoa(days), x, y, 0.5, 0.5, 80, 1.5, gg.AlignCenter)
+	dc.SavePNG("res.png")
+	return "res.png", nil
 }
 
 func Choice(left, right, bottom string) (output string, err error) {

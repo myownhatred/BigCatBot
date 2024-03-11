@@ -28,6 +28,7 @@ const (
 func main() {
 
 	scrap := twitterscraper.New()
+	scrap.WithDelay(5)
 
 	f, _ := os.Open("cookies.json")
 	var cookies []*http.Cookie

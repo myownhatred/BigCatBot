@@ -1,10 +1,12 @@
 package bigcat
 
 import (
+	"Guenhwyvar/lib/memser"
 	"Guenhwyvar/servitor"
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	tele "gopkg.in/telebot.v3"
 )
@@ -26,11 +28,22 @@ func CallbackHandler(c tele.Context, serv *servitor.Servitor) error {
 		id, _ := strconv.Atoi(args[1])
 		serv.ResetTimer(id)
 		event, err := serv.GetTimeWithOutTimerByID(id)
+		currentTime := time.Now()
+		duration := currentTime.Sub(event.Time)
+		days := int(duration.Hours()) / 24
 		if err != nil {
 			c.Send(fmt.Sprintf("при получении названия таймера случилась беда:%s", err.Error()))
 		}
 		c.Delete()
-		return c.Send(fmt.Sprintf("%s сбросил таймер\n%s\nбываеть", c.Callback().Sender.Username, event.Name))
+		pik, err := memser.DaysWO(days, event.Name)
+		if err != nil {
+			c.Send(fmt.Sprintf("при созании картинки для сбросика таймер случчилась бида:%s", err.Error()))
+		}
+		m := &tele.Photo{
+			File:    tele.FromDisk(pik),
+			Caption: fmt.Sprintf("%s сбросил таймер\n%s", c.Callback().Sender.Username, event.Name),
+		}
+		return c.Send(m)
 	}
 
 	switch cbUniq {
