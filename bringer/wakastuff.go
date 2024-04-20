@@ -34,6 +34,7 @@ func (w *WakaStuffResty) GetDailyWaka() (string, error) {
 	response, err := w.r.R().Get(requestLine)
 	if err != nil {
 		log.Printf("wakatime api request failed: %s", err)
+		return "", err
 	}
 
 	var data WakaStruct

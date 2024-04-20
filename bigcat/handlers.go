@@ -4,6 +4,7 @@ import (
 	"Guenhwyvar/config"
 	"Guenhwyvar/servitor"
 	"fmt"
+	"log/slog"
 
 	tele "gopkg.in/telebot.v3"
 )
@@ -28,6 +29,7 @@ type BotHandler struct {
 	serv   *servitor.Servitor
 	flags  *silly
 	comfig *config.AppConfig
+	logger *slog.Logger
 }
 
 func (bh *BotHandler) AddHandler() {
@@ -37,7 +39,7 @@ func (bh *BotHandler) AddHandler() {
 	}
 
 	bh.tgbot.Handle(tele.OnText, func(c tele.Context) error {
-		return CommandHandler(c, bh.serv, bh.flags, bh.comfig)
+		return CommandHandler(c, bh.serv, bh.flags, bh.comfig, bh.logger)
 	})
 	bh.tgbot.Handle("/start", func(c tele.Context) error {
 		return c.Send("пливет!", menu)

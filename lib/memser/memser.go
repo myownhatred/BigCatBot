@@ -6,6 +6,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/fogleman/gg"
 	"github.com/golang/freetype/truetype"
@@ -21,7 +22,7 @@ type Request struct {
 
 func TextOnImg(input string) (string, error) {
 	request := Request{
-		BgImgPath: "storage/notponyal.png",
+		BgImgPath: "./assets/notponyal.png",
 		FontPath:  "",
 		FontSize:  48.0,
 		Text:      input,
@@ -61,6 +62,47 @@ func TextOnImg(input string) (string, error) {
 	}
 
 	return pathImg, nil
+
+}
+
+func DaysMob() (string, error) {
+	bgImage, err := gg.LoadImage("./assets/mobilization.jpg")
+
+	if err != nil {
+		return "", fmt.Errorf("не удалось загрузить шаблон мема мобилизации: %s", err.Error())
+	}
+
+	imgH := bgImage.Bounds().Dy()
+	imgW := bgImage.Bounds().Dx()
+
+	dc := gg.NewContext(imgW, imgH)
+	dc.DrawImage(bgImage, 0, 0)
+
+	if err := dc.LoadFontFace("./assets/Impact.ttf", 96); err != nil {
+		return "", fmt.Errorf("не удалось загрузить шрифт: %s", err.Error())
+	}
+	dc.SetRGB(0, 0, 0)
+	layout := "2006-01-02"
+	t, _ := time.Parse(layout, "2024-03-17")
+	s := strconv.Itoa(int(time.Since(t).Hours() / 24))
+	n := 8 // "stroke" size
+	for dy := -n; dy <= n; dy++ {
+		for dx := -n; dx <= n; dx++ {
+			if dx*dx+dy*dy >= n*n {
+				// give it rounded corners
+				continue
+			}
+			x := 75 + float64(dx)
+			y := 70 + float64(dy)
+			dc.DrawStringAnchored(s, x, y, 0.5, 0.5)
+		}
+	}
+	dc.SetRGB(1, 1, 1)
+	dc.DrawStringAnchored(s, 75, 70, 0.5, 0.5)
+
+	dc.SavePNG("mob.png")
+
+	return "mob.png", nil
 
 }
 

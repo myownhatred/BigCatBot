@@ -26,7 +26,6 @@ func CallbackHandler(c tele.Context, serv *servitor.Servitor) error {
 	if strings.HasPrefix(cbUniq, "\ftwo") {
 		args := strings.Split(cbUniq, "\ftwo")
 		id, _ := strconv.Atoi(args[1])
-		serv.ResetTimer(id)
 		event, err := serv.GetTimeWithOutTimerByID(id)
 		currentTime := time.Now()
 		duration := currentTime.Sub(event.Time)
@@ -34,6 +33,7 @@ func CallbackHandler(c tele.Context, serv *servitor.Servitor) error {
 		if err != nil {
 			c.Send(fmt.Sprintf("при получении названия таймера случилась беда:%s", err.Error()))
 		}
+		serv.ResetTimer(id)
 		c.Delete()
 		pik, err := memser.DaysWO(days, event.Name)
 		if err != nil {

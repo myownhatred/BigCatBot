@@ -4,6 +4,9 @@
 # Binaries for programs and plugins
 Guenhwyvar
 cookies.json
+mob.png
+holdmeme.png
+catmeme.png
 *.exe
 *.exe~
 *.dll

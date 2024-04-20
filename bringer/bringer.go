@@ -51,6 +51,11 @@ type Twitter interface {
 	TwitterGetVideo(link string) (filePath string, err error)
 }
 
+type GetRekt interface {
+	GetWeatherDayForecast(place string) (report string, err error)
+	GetCurrentWeather(place string) (report string, err error)
+}
+
 type Bringer struct {
 	gormPost *gorm.DB
 	db       *sql.DB
@@ -61,6 +66,7 @@ type Bringer struct {
 	FreeMaw
 	Comfiger
 	Twitter
+	GetRekt
 }
 
 func NewBringer(r *resty.Client, scrap *twitterscraper.Scraper, v *viper.Viper, db *sql.DB) *Bringer {
@@ -81,5 +87,6 @@ func NewBringer(r *resty.Client, scrap *twitterscraper.Scraper, v *viper.Viper, 
 		TimeWithOut: NewTimeWithOutPostgres(db),
 		FreeMaw:     NewFreeMawPostgres(db),
 		Twitter:     NewTwitterScrapper(scrap),
+		GetRekt:     NewGetRect(r, v),
 	}
 }

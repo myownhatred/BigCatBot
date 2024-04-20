@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"log/slog"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -57,10 +58,17 @@ const (
 	RollChar = "/rollcharhard"
 	// card stuff
 	Card = "/card"
+	// weather
+	WeatherForecastDay = "/wday"
+	WeatherCurrent     = "/weather"
 )
 
-func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, comfig *config.AppConfig) error {
+func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, comfig *config.AppConfig, logger *slog.Logger) error {
+	logger.Info("incomingtext message",
+		slog.Int64("chatID:", c.Chat().ID),
+		slog.String("message:", c.Message().Text))
 	msgText := strings.Split(c.Message().Text, " ")
+
 	command := msgText[0]
 	// check if link (twitter)
 	if strings.HasPrefix(command, "https://twitter.com") || strings.HasPrefix(command, "https://x.com") {
@@ -125,6 +133,10 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, comfi
 		return DnDRollChar(c)
 	case Card:
 		return GetRandomCard(c)
+	case WeatherCurrent:
+		return CmdWeatherCurrent(c, serv)
+	case WeatherForecastDay:
+		return CmdWeatherForecastDay(c, serv)
 	default:
 		return nil
 	}
@@ -329,6 +341,28 @@ func FreeMawGet(c tele.Context, serv *servitor.Servitor) (err error) {
 	return c.Send(fmt.Sprintf("слусай %s %s", maw.Description, maw.Link))
 }
 
+func CmdWeatherCurrent(c tele.Context, serv *servitor.Servitor) (err error) {
+	if c.Message().Payload == "" {
+		return c.Send("пазязя дайте название дерёвни для узнания погоды!")
+	}
+	report, err := serv.GetCurrentWeather(c.Message().Payload)
+	if err != nil {
+		return c.Send("произосло: " + err.Error())
+	}
+	return c.Send(report)
+}
+
+func CmdWeatherForecastDay(c tele.Context, serv *servitor.Servitor) (err error) {
+	if c.Message().Payload == "" {
+		return c.Send("пазязя дайте название дерёвни для узнания погоды!")
+	}
+	report, err := serv.GetWeatherDayForecast(c.Message().Payload)
+	if err != nil {
+		return c.Send("произосло: " + err.Error())
+	}
+	return c.Send(report)
+}
+
 func FreeMawRep(c tele.Context, serv *servitor.Servitor) (err error) {
 	return c.Send("report is not awalablash")
 }
@@ -361,6 +395,7 @@ func GetRandomCard(c tele.Context) error {
 }
 
 func dice3of4() (scrib string) {
+	rand.Seed(time.Now().UnixNano())
 	min := rand.Intn(6) + 1
 	summ := min
 	scrib += strconv.Itoa(min)

@@ -12,6 +12,8 @@ import (
 	"os"
 	"time"
 
+	"log/slog"
+
 	"github.com/go-resty/resty/v2"
 	twitterscraper "github.com/n0madic/twitter-scraper"
 	"github.com/spf13/pflag"
@@ -27,6 +29,28 @@ const (
 
 func main() {
 
+	opts := PrettyHandlerOptions{
+		SlogOpts: slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		},
+	}
+	handler := NewPrettyHandler(os.Stdout, opts)
+	logger := slog.New(handler)
+	//logger.Debug(
+	//	"executing database query",
+	//	slog.String("query", "SELECT * FROM users"),
+	//)
+	logger.Info("aux init started", slog.String("version", "0.1.1"))
+	//	logger.Warn(
+	//		"storage is 90% full",
+	//		slog.String("available_space", "900.1 MB"),
+	//	)
+	//	logger.Error(
+	//		"An error occurred while processing the request",
+	//		slog.String("url", "https://example.com"),
+	//	)
+
+	// os.Exit(0)
 	scrap := twitterscraper.New()
 	scrap.WithDelay(5)
 
@@ -91,7 +115,7 @@ func main() {
 		return
 	}
 
-	bigcat := bigcat.New(bot, serva, "start")
+	bigcat := bigcat.New(bot, serva, "start", logger)
 	bigcat.Start()
 
 	log.Print("service started")

@@ -2,13 +2,30 @@ package bringer
 
 import (
 	"Guenhwyvar/lib/memser"
+	"io/ioutil"
 	"log"
+	"math/rand"
+	"time"
 )
 
 type MemserGG struct{}
 
 func NewMemserGG() *MemserGG {
 	return &MemserGG{}
+}
+
+func (m *MemserGG) GetDayPicture(day string) (filePath string, err error) {
+	rand.Seed(time.Now().UnixNano())
+	files, err := ioutil.ReadDir(day)
+	if err != nil {
+		return "", err
+	}
+	if len(files) == 0 {
+		return "", nil
+	}
+	randIndex := rand.Intn(len(files))
+	randomFile := files[randIndex].Name()
+	return randomFile, nil
 }
 
 func (m *MemserGG) CreateGuiltyCatMeme(text string) (filePath string, err error) {

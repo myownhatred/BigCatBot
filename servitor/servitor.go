@@ -42,6 +42,11 @@ type Twitter interface {
 	TwitterGetVideo(link string) (filePath string, err error)
 }
 
+type GetRekt interface {
+	GetWeatherDayForecast(place string) (report string, err error)
+	GetCurrentWeather(place string) (report string, err error)
+}
+
 type Servitor struct {
 	WakaStuff
 	Memser
@@ -50,6 +55,7 @@ type Servitor struct {
 	TimeWithOut
 	Comfiger
 	Twitter
+	GetRekt
 }
 
 func NewServitor(bringer *bringer.Bringer) *Servitor {
@@ -61,5 +67,6 @@ func NewServitor(bringer *bringer.Bringer) *Servitor {
 		TimeWithOut: NewTimeWithOutServ(bringer.TimeWithOut),
 		Comfiger:    NewComfigerServ(bringer.Comfiger),
 		Twitter:     NewTwitterServ(bringer.Twitter),
+		GetRekt:     NewGetRectServ(bringer.GetRekt),
 	}
 }
