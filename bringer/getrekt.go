@@ -3,9 +3,11 @@ package bringer
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/gocolly/colly"
 	"github.com/spf13/viper"
 )
 
@@ -133,6 +135,21 @@ func (rekt *GetRektResty) GetCurrentWeather(place string) (report string, err er
 
 func hourReport(temp, wind float32, desc string) string {
 	return fmt.Sprintf("🌡️:%d°С 💨: %d м/с в целом:%s\n", int(temp), int(wind), desc)
+}
+
+func (rekt *GetRektResty) GetRandomMTG() (url string, err error) {
+	site := "https://scryfall.com/random"
+	c := colly.NewCollector(
+		colly.UserAgent("Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"),
+	)
+	c.OnHTML("[src]", func(e *colly.HTMLElement) {
+		link := e.Attr("src")
+		if strings.Contains(link, "https://cards.scryfall.io") {
+			url = link
+		}
+	})
+	c.Visit(site)
+	return url, nil
 }
 
 // structs

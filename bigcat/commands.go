@@ -64,8 +64,20 @@ const (
 )
 
 func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, comfig *config.AppConfig, logger *slog.Logger) error {
+	username := "АНОНИМ_ЛЕГИВОН"
+	lastname := "Doe"
+	if c.Sender().Username != "" {
+		username = c.Sender().Username
+	}
+	if c.Sender().LastName != "" {
+		lastname = c.Sender().LastName
+	}
 	logger.Info("incomingtext message",
 		slog.Int64("chatID:", c.Chat().ID),
+		slog.Int64("userID:", c.Sender().ID),
+		slog.String("username:", username),
+		slog.String("firstname:", c.Sender().FirstName),
+		slog.String("lastname:", lastname),
 		slog.String("message:", c.Message().Text))
 	msgText := strings.Split(c.Message().Text, " ")
 

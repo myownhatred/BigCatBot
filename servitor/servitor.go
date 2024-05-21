@@ -4,6 +4,9 @@ import (
 	"Guenhwyvar/bringer"
 	"Guenhwyvar/config"
 	"Guenhwyvar/entities"
+	"log/slog"
+
+	tele "gopkg.in/telebot.v3"
 )
 
 type WakaStuff interface {
@@ -47,7 +50,12 @@ type GetRekt interface {
 	GetCurrentWeather(place string) (report string, err error)
 }
 
+type MediaCreator interface {
+	MediaManulFile() (tele.File, error)
+}
+
 type Servitor struct {
+	logger *slog.Logger
 	WakaStuff
 	Memser
 	AnimeMaw
@@ -56,17 +64,20 @@ type Servitor struct {
 	Comfiger
 	Twitter
 	GetRekt
+	MediaCreator
 }
 
-func NewServitor(bringer *bringer.Bringer) *Servitor {
+func NewServitor(bringer *bringer.Bringer, logger *slog.Logger) *Servitor {
 	return &Servitor{
-		WakaStuff:   NewWakaStuffServ(bringer.WakaStuff),
-		Memser:      NewMemserServ(bringer.Memser),
-		AnimeMaw:    NewAnimeMawServ(bringer.AnimeMaw),
-		FreeMaw:     NewFreeMawServ(bringer.FreeMaw),
-		TimeWithOut: NewTimeWithOutServ(bringer.TimeWithOut),
-		Comfiger:    NewComfigerServ(bringer.Comfiger),
-		Twitter:     NewTwitterServ(bringer.Twitter),
-		GetRekt:     NewGetRectServ(bringer.GetRekt),
+		logger:       logger,
+		WakaStuff:    NewWakaStuffServ(bringer.WakaStuff),
+		Memser:       NewMemserServ(bringer.Memser),
+		AnimeMaw:     NewAnimeMawServ(bringer.AnimeMaw),
+		FreeMaw:      NewFreeMawServ(bringer.FreeMaw),
+		TimeWithOut:  NewTimeWithOutServ(bringer.TimeWithOut),
+		Comfiger:     NewComfigerServ(bringer.Comfiger),
+		Twitter:      NewTwitterServ(bringer.Twitter),
+		GetRekt:      NewGetRectServ(bringer.GetRekt),
+		MediaCreator: NewMediaCreatorServ(bringer.Twitter, bringer.GetRekt, logger),
 	}
 }

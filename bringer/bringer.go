@@ -4,6 +4,7 @@ import (
 	"Guenhwyvar/config"
 	"Guenhwyvar/entities"
 	"database/sql"
+	"log/slog"
 
 	"github.com/go-resty/resty/v2"
 	_ "github.com/lib/pq"
@@ -49,16 +50,23 @@ type Comfiger interface {
 
 type Twitter interface {
 	TwitterGetVideo(link string) (filePath string, err error)
+	TwitterGetHourlyPicture(acc string) (filePath string, err error)
 }
 
 type GetRekt interface {
 	GetWeatherDayForecast(place string) (report string, err error)
 	GetCurrentWeather(place string) (report string, err error)
+	GetRandomMTG() (url string, err error)
+}
+
+type Police interface {
+	UserDefaultCheck(UserID int64, username, firstname, lastname, command string) (err error)
 }
 
 type Bringer struct {
 	gormPost *gorm.DB
 	db       *sql.DB
+	logger   *slog.Logger
 	WakaStuff
 	Memser
 	AnimeMaw
@@ -67,9 +75,10 @@ type Bringer struct {
 	Comfiger
 	Twitter
 	GetRekt
+	Police
 }
 
-func NewBringer(r *resty.Client, scrap *twitterscraper.Scraper, v *viper.Viper, db *sql.DB) *Bringer {
+func NewBringer(r *resty.Client, scrap *twitterscraper.Scraper, v *viper.Viper, db *sql.DB, logger *slog.Logger) *Bringer {
 	gormP, err := gorm.Open(postgres.New(postgres.Config{
 		Conn: db,
 	}), &gorm.Config{})
@@ -80,6 +89,7 @@ func NewBringer(r *resty.Client, scrap *twitterscraper.Scraper, v *viper.Viper, 
 	return &Bringer{
 		gormPost:    gormP,
 		db:          db,
+		logger:      logger,
 		Comfiger:    NewComfigerViper(v),
 		WakaStuff:   NewWakaStuff(r, v),
 		Memser:      NewMemserGG(),
@@ -88,5 +98,6 @@ func NewBringer(r *resty.Client, scrap *twitterscraper.Scraper, v *viper.Viper, 
 		FreeMaw:     NewFreeMawPostgres(db),
 		Twitter:     NewTwitterScrapper(scrap),
 		GetRekt:     NewGetRect(r, v),
+		Police:      NewPolicePostgres(db, logger),
 	}
 }

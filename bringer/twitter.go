@@ -1,6 +1,7 @@
 package bringer
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -46,4 +47,21 @@ func (s *TwitterScrapper) TwitterGetVideo(link string) (filePath string, err err
 	defer resp.Body.Close()
 	_, _ = io.Copy(out, resp.Body)
 	return link + ".mp4", nil
+}
+
+func (s *TwitterScrapper) TwitterGetHourlyPicture(acc string) (filePath string, err error) {
+	count := 0
+	for tweet := range s.s.GetTweets(context.Background(), acc, 2) {
+		if tweet.Error != nil {
+			return "", tweet.Error
+		}
+		if count > 0 {
+			return tweet.Photos[0].URL, nil
+		}
+		// skipping first tweet on account just in case it is pinned
+		// I don't know why I just don't pick second tweet
+		// TODO check how it works and make it better
+		count++
+	}
+	return "found nothing", nil
 }

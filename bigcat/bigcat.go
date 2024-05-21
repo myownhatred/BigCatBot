@@ -23,6 +23,7 @@ type BigCat struct {
 
 type silly struct {
 	AnimeOpeningsUploadFlag bool
+	ManulSpam               bool
 }
 
 func New(tgBot *tele.Bot, serv *servitor.Servitor, str string, logger *slog.Logger) *BigCat {
@@ -31,7 +32,9 @@ func New(tgBot *tele.Bot, serv *servitor.Servitor, str string, logger *slog.Logg
 		logger.Error("cant load comfig to kitty:%s", err.Error())
 		os.Exit(1)
 	}
-	flag := &silly{}
+	flag := &silly{
+		ManulSpam: true,
+	}
 	handler := &BotHandler{
 		tgbot:  tgBot,
 		serv:   serv,
@@ -72,6 +75,19 @@ func (c *BigCat) Start() {
 			c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, err.Error())
 		}
 		c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, report)
+	})
+	// manul spam
+	c.clock.AddFunc("0 0 * * * *", func() {
+		c.logger.Info("manul spam executed")
+		m, err := c.serv.MediaCreator.MediaManulFile()
+		pho := &tele.Photo{
+			File:    m,
+			Caption: "#чтотокаждыйчас",
+		}
+		if err != nil {
+			c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, err.Error())
+		}
+		c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, pho)
 	})
 	c.clock.Start()
 	c.tgBot.Start()

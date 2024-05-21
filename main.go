@@ -40,17 +40,8 @@ func main() {
 	//	"executing database query",
 	//	slog.String("query", "SELECT * FROM users"),
 	//)
-	logger.Info("aux init started", slog.String("version", "0.1.1"))
-	//	logger.Warn(
-	//		"storage is 90% full",
-	//		slog.String("available_space", "900.1 MB"),
-	//	)
-	//	logger.Error(
-	//		"An error occurred while processing the request",
-	//		slog.String("url", "https://example.com"),
-	//	)
+	logger.Info("aux init started", slog.String("version", "0.1.20240521_1"))
 
-	// os.Exit(0)
 	scrap := twitterscraper.New()
 	scrap.WithDelay(5)
 
@@ -92,8 +83,8 @@ func main() {
 	// close it, just in case
 	defer dbPostgres.Close()
 
-	bringa := bringer.NewBringer(resty.New(), scrap, dodgeViper, dbPostgres)
-	serva := servitor.NewServitor(bringa)
+	bringa := bringer.NewBringer(resty.New(), scrap, dodgeViper, dbPostgres, logger)
+	serva := servitor.NewServitor(bringa, logger)
 
 	value2 := dodgeViper.GetString("telegramtoken")
 	pref := tele.Settings{
