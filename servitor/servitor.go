@@ -48,10 +48,17 @@ type Twitter interface {
 type GetRekt interface {
 	GetWeatherDayForecast(place string) (report string, err error)
 	GetCurrentWeather(place string) (report string, err error)
+	GetFreeSteamGames() (report string, err error)
 }
 
 type MediaCreator interface {
 	MediaManulFile() (tele.File, error)
+}
+
+type Police interface {
+	UserDefaultCheck(UserID int64, username, firstname, lastname, command string) (err error)
+	MetatronChatAdd(ChatID int64, ChatName string) (err error)
+	MetatronChatList() (IDs []int64, ChatIDs []int64, Names []string, err error)
 }
 
 type Servitor struct {
@@ -65,6 +72,7 @@ type Servitor struct {
 	Twitter
 	GetRekt
 	MediaCreator
+	Police
 }
 
 func NewServitor(bringer *bringer.Bringer, logger *slog.Logger) *Servitor {
@@ -79,5 +87,6 @@ func NewServitor(bringer *bringer.Bringer, logger *slog.Logger) *Servitor {
 		Twitter:      NewTwitterServ(bringer.Twitter),
 		GetRekt:      NewGetRectServ(bringer.GetRekt),
 		MediaCreator: NewMediaCreatorServ(bringer.Twitter, bringer.GetRekt, logger),
+		Police:       NewPoliceServ(bringer.Police, logger),
 	}
 }

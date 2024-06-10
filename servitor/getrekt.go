@@ -27,3 +27,11 @@ func (rekt *GetRektServ) GetCurrentWeather(place string) (report string, err err
 	}
 	return report, nil
 }
+
+func (rekt *GetRektServ) GetFreeSteamGames() (report string, err error) {
+	report, err = rekt.bringer.GetFreeSteamGames()
+	if err != nil {
+		return "", err
+	}
+	return report, nil
+}

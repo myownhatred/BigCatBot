@@ -57,10 +57,13 @@ type GetRekt interface {
 	GetWeatherDayForecast(place string) (report string, err error)
 	GetCurrentWeather(place string) (report string, err error)
 	GetRandomMTG() (url string, err error)
+	GetFreeSteamGames() (string, error)
 }
 
 type Police interface {
 	UserDefaultCheck(UserID int64, username, firstname, lastname, command string) (err error)
+	MetatronChatAdd(ChatID int64, ChatName string) (err error)
+	MetatronChatList() (IDs []int64, ChatIDs []int64, Names []string, err error)
 }
 
 type Bringer struct {

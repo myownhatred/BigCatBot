@@ -73,13 +73,13 @@ func (rekt *GetRektResty) GetWeatherDayForecast(place string) (report string, er
 				}
 			}
 			switch h {
-			case 6, 7:
+			case 0, 1:
 				report += "Утро(ебать)☕\n"
 				report += hourReport(w.WsM.Temp, w.Wind.Speed, w.Ws[0].Description)
-			case 12, 13:
+			case 5, 6:
 				report += "Обед🍴🍲\n"
 				report += hourReport(w.WsM.Temp, w.Wind.Speed, w.Ws[0].Description)
-			case 18, 19:
+			case 11, 12:
 				report += "Вечер 𓀐𓂸🤱🏻🤰\n"
 				report += hourReport(w.WsM.Temp, w.Wind.Speed, w.Ws[0].Description)
 			}
@@ -152,6 +152,26 @@ func (rekt *GetRektResty) GetRandomMTG() (url string, err error) {
 	return url, nil
 }
 
+func (rekt *GetRektResty) GetFreeSteamGames() (string, error) {
+	res, err := rekt.r.R().
+		Get("https://raw.githubusercontent.com/InJeCTrL/NeedFree/master/free_goods_detail.json")
+	if err != nil {
+		return "", err
+	}
+
+	var ret FreeGames
+	if err = json.Unmarshal(res.Body(), &ret); err != nil {
+		return "", err
+	}
+	otvet := ""
+	otvet += fmt.Sprintf("Сегодня навалили халявы %d титулов\n", ret.TotalCount)
+	for _, gre := range ret.FreeList {
+		otvet += fmt.Sprintf("%s - %s\n", gre[0], gre[1])
+	}
+	otvet += fmt.Sprintf("последний раз проверялось - %s\n", ret.UpdateTime)
+	return otvet, nil
+}
+
 // structs
 type Weather struct {
 	Id          int    `json:"id"`
@@ -213,4 +233,10 @@ type Forecast struct {
 	Message int               `json:"message"`
 	Cnt     int               `json:"cnt"`
 	List    []WeatherResponse `json:"list"`
+}
+
+type FreeGames struct {
+	TotalCount int        `json:"total_count"`
+	FreeList   [][]string `json:"free_list"`
+	UpdateTime string     `json:"update_time"`
 }

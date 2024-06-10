@@ -89,6 +89,15 @@ func (c *BigCat) Start() {
 		}
 		c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, pho)
 	})
+	// steam check
+	c.clock.AddFunc("0 0 3 * * *", func() {
+		c.logger.Info("steam spam executed")
+		report, err := c.serv.GetFreeSteamGames()
+		if err != nil {
+			c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, err.Error())
+		}
+		c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, report)
+	})
 	c.clock.Start()
 	c.tgBot.Start()
 }

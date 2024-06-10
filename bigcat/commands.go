@@ -61,6 +61,12 @@ const (
 	// weather
 	WeatherForecastDay = "/wday"
 	WeatherCurrent     = "/weather"
+	// steam
+	GetFreeSteamGames = "/steam"
+	// police
+	MetatronChatAdd  = "/chatadd"
+	MetatronChatList = "/chatlist"
+	MetatronChatSend = "/chatsend"
 )
 
 func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, comfig *config.AppConfig, logger *slog.Logger) error {
@@ -149,6 +155,14 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, comfi
 		return CmdWeatherCurrent(c, serv)
 	case WeatherForecastDay:
 		return CmdWeatherForecastDay(c, serv)
+	case GetFreeSteamGames:
+		return CmdGetFreeSteamGames(c, serv)
+	case MetatronChatAdd:
+		return CmdMetatronChatAdd(c, serv)
+	case MetatronChatList:
+		return CmdMetatronChatList(c, serv)
+	case MetatronChatSend:
+		return CmdMetatronChatSend(c, serv, username)
 	default:
 		return nil
 	}
@@ -372,6 +386,69 @@ func CmdWeatherForecastDay(c tele.Context, serv *servitor.Servitor) (err error) 
 	if err != nil {
 		return c.Send("произосло: " + err.Error())
 	}
+	return c.Send(report)
+}
+
+func CmdGetFreeSteamGames(c tele.Context, serv *servitor.Servitor) (err error) {
+	report, err := serv.GetFreeSteamGames()
+	if err != nil {
+		return c.Send("пли вызовые халяви стима произосло: " + err.Error())
+	}
+	return c.Send(report)
+}
+
+func CmdMetatronChatAdd(c tele.Context, serv *servitor.Servitor) (err error) {
+	err = serv.MetatronChatAdd(c.Chat().ID, c.Chat().Title)
+	if err != nil {
+		return c.Send("сомесинг вронг аддинг зыс чат ту зе метатрон лист: " + err.Error())
+	} else {
+		return c.Send("chat added to hyperconnection communnnication ultranetwork")
+	}
+}
+
+func CmdMetatronChatList(c tele.Context, serv *servitor.Servitor) (err error) {
+	IDs, _, Names, err := serv.MetatronChatList()
+	if err != nil {
+		return c.Send("сомесинг вент вронг листинг чатс: " + err.Error())
+	} else {
+		report := ""
+		for i, id := range IDs {
+			report += fmt.Sprintf("%d - %s\n", id, Names[i])
+		}
+		return c.Send(report)
+	}
+}
+
+func CmdMetatronChatSend(c tele.Context, serv *servitor.Servitor, username string) (err error) {
+	if c.Message().Payload == "" {
+		return c.Send("введите номер чатика из списька а потом сообщеньку")
+	}
+	cmdargs := strings.Split(c.Message().Payload, " ")
+	num, err := strconv.Atoi(cmdargs[0])
+	if err != nil {
+		return c.Send("введите номер чатика из списька а потом сообщеньку")
+	}
+	if num == 0 {
+		return c.Send("номер чатика должен быть большее нулика")
+	}
+	// prepare message and chat coordinates
+	result := ""
+	for i, str := range cmdargs {
+		if i != 0 {
+			result = strings.Join([]string{result, str}, " ")
+		}
+	}
+	IDs, ChatIDs, Names, err := serv.MetatronChatList()
+	if len(IDs) < num {
+		return c.Send("номер чатика должен быить из списка чатиков /chatlist")
+	}
+	if c.Chat().Title == "" {
+		result += fmt.Sprintf("\n\n^^^^^^^^^\nот %s", username)
+	} else {
+		result += fmt.Sprintf("\n\n^^^^^^^^^\nот %s\nИз чата %s", username, c.Chat().Title)
+	}
+	c.Bot().Send(&tele.Chat{ID: ChatIDs[num-1]}, result)
+	report := fmt.Sprintf("Отправили ваше письмо в чат %s", Names[num-1])
 	return c.Send(report)
 }
 
