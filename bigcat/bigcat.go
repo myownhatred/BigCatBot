@@ -28,6 +28,7 @@ type silly struct {
 
 func New(tgBot *tele.Bot, serv *servitor.Servitor, str string, logger *slog.Logger) *BigCat {
 	comfig, err := serv.GetAppComfig()
+	biggy := NewBigBrain()
 	if err != nil {
 		logger.Error("cant load comfig to kitty:%s", err.Error())
 		os.Exit(1)
@@ -39,6 +40,7 @@ func New(tgBot *tele.Bot, serv *servitor.Servitor, str string, logger *slog.Logg
 		tgbot:  tgBot,
 		serv:   serv,
 		flags:  flag,
+		brain:  biggy,
 		comfig: comfig,
 		logger: logger,
 	}
@@ -47,7 +49,7 @@ func New(tgBot *tele.Bot, serv *servitor.Servitor, str string, logger *slog.Logg
 		tgBot:    tgBot,
 		serv:     serv,
 		brain:    flag,
-		bigBrain: &BigBrain{},
+		bigBrain: biggy,
 		clock:    cron.New(cron.WithSeconds()),
 		storage:  str,
 		logger:   logger,

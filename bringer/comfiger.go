@@ -29,6 +29,9 @@ func (c *ComfigViper) GetAppComfigFromViper() (*config.AppConfig, error) {
 		// TODO make it just log message
 		log.Fatalf("can't find dad's joke snatchel")
 	}
+	if c.v.IsSet("misterx") {
+		comfig.MisterX = c.v.GetInt64("misterx")
+	}
 	if c.v.IsSet("mothership") {
 		comfig.MotherShip = c.v.GetInt64("mothership")
 		return comfig, nil

@@ -64,12 +64,13 @@ const (
 	// steam
 	GetFreeSteamGames = "/steam"
 	// police
-	MetatronChatAdd  = "/chatadd"
-	MetatronChatList = "/chatlist"
-	MetatronChatSend = "/chatsend"
+	MetatronChatAdd     = "/chatadd"
+	MetatronChatList    = "/chatlist"
+	MetatronChatSend    = "/chatsend"
+	MetatronChatForward = "/chatforward"
 )
 
-func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, comfig *config.AppConfig, logger *slog.Logger) error {
+func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain *BigBrain, comfig *config.AppConfig, logger *slog.Logger) error {
 	username := "АНОНИМ_ЛЕГИВОН"
 	lastname := "Doe"
 	if c.Sender().Username != "" {
@@ -87,6 +88,26 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, comfi
 		slog.String("message:", c.Message().Text))
 	msgText := strings.Split(c.Message().Text, " ")
 
+	// metatron check
+
+	if c.Message().Private() {
+		// check if user is on the bot/metatron list and set metatron flag on
+		if _, ok := brain.UsersFlags[c.Sender().ID]; ok {
+			logger.Info("user found:", c.Sender().ID)
+			val := brain.UsersFlags[c.Sender().ID]
+			if val.MetatronFordwardFlag {
+				if msgText[0] == "/stop" {
+					val.MetatronFordwardFlag = false
+					brain.UsersFlags[c.Sender().ID] = val
+					return c.Send("остановили форварденг")
+				}
+				//photo := c.Message().Photo
+				return c.ForwardTo(&tele.Chat{ID: val.MetatronChat})
+			}
+		} else {
+			logger.Info("user not found:", c.Sender().ID)
+		}
+	}
 	command := msgText[0]
 	// check if link (twitter)
 	if strings.HasPrefix(command, "https://twitter.com") || strings.HasPrefix(command, "https://x.com") {
@@ -163,9 +184,12 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, comfi
 		return CmdMetatronChatList(c, serv)
 	case MetatronChatSend:
 		return CmdMetatronChatSend(c, serv, username)
+	case MetatronChatForward:
+		return CmdMetatronChatForward(c, serv, brain, username)
 	default:
 		return nil
 	}
+
 }
 
 func CreateGuiltyCatMeme(c tele.Context, serv *servitor.Servitor) error {
@@ -452,6 +476,31 @@ func CmdMetatronChatSend(c tele.Context, serv *servitor.Servitor, username strin
 	return c.Send(report)
 }
 
+func CmdMetatronChatForward(c tele.Context, serv *servitor.Servitor, brain *BigBrain, username string) (err error) {
+	if c.Message().Payload == "" {
+		return c.Send("введите номер чатика для форварьдинга из списька")
+	}
+	cmdargs := strings.Split(c.Message().Payload, " ")
+	num, err := strconv.Atoi(cmdargs[0])
+	if err != nil {
+		return c.Send("введите номер чатика из списька")
+	}
+	if num == 0 {
+		return c.Send("номер чатика должен быть большее нулика")
+	}
+	IDs, ChatIDs, _, err := serv.MetatronChatList()
+	if len(IDs) < num {
+		return c.Send("номер чатика должен быить из списка чатиков /chatlist")
+	}
+	// add forward flag and chat ID to bot brain
+	rule := UserRules{
+		MetatronChat:         ChatIDs[num-1],
+		MetatronFordwardFlag: true,
+	}
+	brain.UsersFlags[c.Sender().ID] = rule
+	return c.Send("форварденг включин")
+}
+
 func FreeMawRep(c tele.Context, serv *servitor.Servitor) (err error) {
 	return c.Send("report is not awalablash")
 }
@@ -465,13 +514,26 @@ func DnDRollChar(c tele.Context) error {
 	message += "Гендир: " + gender[rand.Intn(len(gender))] + "\n"
 	message += "Расса: " + racces[rand.Intn(len(racces))] + "\n"
 	message += "Клас: " + clases[rand.Intn(len(clases))] + "\n"
-	message += "Сила: " + dice3of4() + "\n"
-	message += "Ловкость: " + dice3of4() + "\n"
-	message += "Телосложение: " + dice3of4() + "\n"
-	message += "Интеллект: " + dice3of4() + "\n"
-	message += "Мудрость: " + dice3of4() + "\n"
-	message += "Харя: " + dice3of4() + "\n"
-	return c.Send(message)
+	str := dice3of4i()
+	message += "Сила: " + strconv.Itoa(str) + "\n"
+	dex := dice3of4i()
+	message += "Ловкость: " + strconv.Itoa(dex) + "\n"
+	con := dice3of4i()
+	message += "Телосложение: " + strconv.Itoa(con) + "\n"
+	inn := dice3of4i()
+	message += "Интеллект: " + strconv.Itoa(inn) + "\n"
+	wis := dice3of4i()
+	message += "Мудрость: " + strconv.Itoa(wis) + "\n"
+	cha := dice3of4i()
+	message += "Харя: " + strconv.Itoa(cha) + "\n"
+	ach, title := DNDStatsAchievement(str, dex, con, inn, wis, cha)
+	if ach == "" {
+		return c.Send(message)
+	} else {
+		message += "Твой титул: " + title + "\n"
+		message += "И у тебя ачивка: " + ach + "\n"
+		return c.Send(message)
+	}
 }
 
 func GetRandomCard(c tele.Context) error {
@@ -499,6 +561,19 @@ func dice3of4() (scrib string) {
 	scrib += " = " + strconv.Itoa(summ) + " => " + strconv.Itoa(summ-min)
 	return scrib
 }
+func dice3of4i() (res int) {
+	rand.Seed(time.Now().UnixNano())
+	min := rand.Intn(6) + 1
+	summ := min
+	for i := 0; i < 3; i++ {
+		k := rand.Intn(6) + 1
+		summ += k
+		if k < min {
+			min = k
+		}
+	}
+	return summ - min
+}
 
 func butifulMumbers(i int) string {
 	switch i {
@@ -523,4 +598,273 @@ func butifulMumbers(i int) string {
 	default:
 		return strconv.Itoa(i)
 	}
+}
+
+func DNDStatsAchievement(str, dex, con, inn, wis, cha int) (achive, title string) {
+	arr := [6]int{str, dex, con, inn, wis, cha}
+	// brackets
+	p18 := 0
+	p16 := 0
+	p12 := 0
+	b14_15 := 0
+	b12_15 := 0
+	b10_14 := 0
+	p14 := 0
+	m12 := 0
+	m10 := 0
+	m8 := 0
+	m6 := 0
+	m4 := 0
+	equals := 0
+
+	for k, i := range arr {
+		for j, z := range arr {
+			if j == k {
+				continue
+			}
+			if i == z {
+				equals++
+			}
+		}
+		if i >= 18 {
+			p18++
+		}
+		if i >= 16 {
+			p16++
+		}
+		if i >= 12 {
+			p12++
+		}
+		if 15 >= i && i >= 14 {
+			b14_15++
+		}
+		if 15 >= i && i >= 12 {
+			b12_15++
+		}
+		if 14 >= i && i >= 10 {
+			b10_14++
+		}
+		if i >= 14 {
+			p14++
+		}
+		if i <= 10 {
+			m10++
+		}
+		if i <= 8 {
+			m8++
+		}
+		if i <= 6 {
+			m6++
+		}
+		if i <= 4 {
+			m4++
+		}
+	}
+	// Perfect Balance
+	if str == 18 && dex == 18 && con == 18 && inn == 18 && wis == 18 && cha == 18 {
+		return "Перфентный Баланц", "Парагон"
+	}
+	// The Mastermind
+	if (p16 == 4 && b14_15 == 2) || (p16 == 5 && b14_15 == 1) {
+		return "Мастерум", "Виртуоззо"
+	}
+	// Well-rounded
+	if p16 == 3 && b14_15 == 3 {
+		return "Хорошо-круглый", "Герой ренисанса"
+	}
+	if p16 == 3 {
+		return "Высокий роллер", "Удачливая легенда"
+	}
+	if str >= 16 && dex >= 16 && con >= 16 {
+		return "Физический мощнодом", "Неостановимый джаггернихт"
+	}
+	if inn >= 16 && wis >= 16 && cha >= 16 {
+		return "Ментальное мастерство", "Саг"
+	}
+	if p18 == 1 && b12_15 == 5 {
+		return "Спецальный", "Специлист"
+	}
+	if p18 == 1 && p12 == 5 {
+		return "Удачный прорыв", "Счастливая находка"
+	}
+	if p18 >= 1 && m6 >= 1 {
+		return "Разбалансированный зверь", "Разбалансированная подсобака"
+	}
+	if m10 == 1 && p14 == 5 {
+		return "Небалансный", "Дикая карта"
+	}
+	if m10 == 6 {
+		return "Низские начала", "Подсобака"
+	}
+	if equals == 0 {
+		return "Уникальный снежок", "Энигма"
+	}
+	if b12_15 == 6 {
+		return "Золотая середина", "Балансировочное лезвие"
+	}
+	if b10_14 == 6 {
+		return "Чудо середины дороги", "Средний приключенец"
+	}
+	if inn >= 16 && wis >= 16 {
+		return "Мозговая Правда", "Интелектуарный гигант"
+	}
+	if cha == 18 && b12_15 == 5 {
+		return "Харизматичный лидер", "Народный чемпион"
+	}
+	// the brawler - the unyielding warrior
+	if str >= 16 && con >= 16 {
+		return "Браулер", "Неелдующий воин"
+	}
+	if dex == 18 && str <= 6 {
+		return "Подвижный якорь", "Быстрый страйкер"
+	}
+	if dex == 18 && b12_15 == 5 {
+		return "Подвижный туз", "Быстрый страйкер со слабым пятном"
+	}
+	if p16 == 0 && m10 >= 3 {
+		return "Жека без торговлей", "Борцующийся выживальщик"
+	}
+	if p18 == 1 && m10 == 5 {
+		return "Непохоже что гирой", "Случайный чемпион"
+	}
+	if str == 18 && con == 18 {
+		return "Скульптурный", "Недвижимый объект"
+	}
+	if str == 18 && con == 18 && dex <= 6 {
+		return "Скульптурный спотыкач", "Неуклюжий гигант"
+	}
+	if inn >= 16 && dex >= 16 {
+		return "Церебральный убийца", "Кунирующий киллер"
+	}
+	if inn >= 16 && wis >= 16 && cha <= 6 {
+		return "Церебральный спотыкач", "Нехаризматичный гений"
+	}
+	if m8 == 6 {
+		return "Неудачливая душа", "Проклятый путещественник"
+	}
+	if str <= 6 && m10 == 5 {
+		return "Слабый боец", "Жалкий боксёр"
+	}
+	if dex <= 6 && m10 == 5 {
+		return "Неуклюжий придурок", "Храбрый с пальцами"
+	}
+	if inn <= 6 && m10 == 5 {
+		return "Тусклая лампочка", "Тупой сорвиголова"
+	}
+	if wis <= 6 && m10 == 5 {
+		return "Наивный новичок", "Доверчивый игрок"
+	}
+	if cha <= 6 && m10 == 5 {
+		return "Невдохновляющий лидер", "Непопулярный герой"
+	}
+	if con <= 6 && m10 == 5 {
+		return "Хрупкий цветочек", "Деликатный дорогуша"
+	}
+	if m12 == 0 && m8 >= 3 {
+		return "Всеобще ужасный", "Полный провал"
+	}
+	if m6 == 6 {
+		return "Бездонный искатель приключений", "Жалкий исследователь"
+	}
+	if str >= 4 && m10 == 5 {
+		return "Бессильный бродяга", "Бессильный боксёр"
+	}
+	if dex >= 4 && m10 == 5 {
+		return "Неуклюжая катастрофа", "Каламутный скалолаз"
+	}
+	if inn >= 4 && m10 == 5 {
+		return "Интелектуально вызванный", "Глупенький савант"
+	}
+	if wis >= 4 && m10 == 5 {
+		return "Бездумный бродяга", "Наивный кочевник"
+	}
+	if cha >= 4 && m10 == 5 {
+		return "Стрёмный неудачник", "Непопулярный недостигатор"
+	}
+	if con >= 4 && m10 == 5 {
+		return "Хрупкая неудача", "Ломаный храбрец"
+	}
+	if dex <= 6 && str <= 6 {
+		return "Нескоординированный придурок", "Неуклюжий сгусток"
+	}
+	if inn <= 6 && wis <= 6 {
+		return "Дуплет тупизны", "Глупый собиратель"
+	}
+	if inn <= 6 && wis <= 6 && cha <= 6 {
+		return "Триплет тупизны", "Непопулярный контрдостигатель"
+	}
+	if con <= 6 && str <= 6 && dex <= 6 && inn <= 6 {
+		return "Четверной хрупок", "Мегаломающийся храбрый"
+	}
+	if m4 == 6 {
+		return "Шестикратная угроза", "Полная катастрофа"
+	}
+	if m8 == 5 && m4 == 1 {
+		return "Невезучая подсобака", "Неудачный контрдостигатель"
+	}
+	if m6 == 5 && m4 == 1 {
+		return "Горестный негодяй", "Жалкий исследователь"
+	}
+	if m6 == 6 {
+		return "Эксперт горячего замеса", "Каламутный крестодёр"
+	}
+	if m10 == 5 && str <= 4 {
+		return "Кирпичная стена", "Неходящий объект"
+	}
+	if m10 == 5 && dex <= 4 {
+		return "Неуклюжий кинг", "Неуклюжий чемпион"
+	}
+	if m10 == 5 && inn <= 4 {
+		return "Мозговой слив", "Тускломуный дипломат"
+	}
+	if m10 == 5 && wis <= 4 {
+		return "Космический кадет", "Глупый собиратель"
+	}
+	if m10 == 5 && cha <= 4 {
+		return "Социальный изгой", "Непопулярный контрдостигатель"
+	}
+	if m10 == 5 && con <= 4 {
+		return "Стеклянная пушка", "Мегаломающийся храбрый"
+	}
+	if m10 == 3 && m6 == 3 {
+		return "Трио поездокрушения", "Каламутный крестодёр"
+	}
+	if con <= 6 && str <= 6 && dex <= 6 {
+		return "Несвятая троица", "Раскоординированный монстр"
+	}
+	if inn <= 6 && wis <= 6 && cha <= 6 {
+		return "Подрыв доверия к мозгу", "Непопулярный контрдостигатель"
+	}
+	if m4 == 6 {
+		return "Пятикратная угроза себе", "Полная катастрофа"
+	}
+	if m8 == 5 && m4 == 1 {
+		return "Пятикратная угроза себе", "Полная катастрофа"
+	}
+	if p16 >= 1 && m8 >= 1 {
+		return "Высокий и низкий герой", "Непредсказуемая подсобака"
+	}
+	if p18 >= 1 && m6 >= 1 {
+		return "Разбалансированный зверь", "Разбалансированная подсобака"
+	}
+	if inn == 18 && m10 == 5 {
+		return "Нестабильный гений", "Безумный учоный"
+	}
+	if cha == 18 && m10 == 5 {
+		return "Харизматичный шансовщик", "Серебрянноязыкий дъиявол"
+	}
+	if dex == 18 && m10 == 5 {
+		return "Подвижный акробат", "Бысрый ударщик"
+	}
+	if str <= 4 && m12 == 5 {
+		return "Бессильное чудо", "Дрыщеватый боец"
+	}
+	if dex <= 4 && m12 == 5 {
+		return "Неуклюжая катастрофа", "Щас-что-то-будет"
+	}
+	if p16 == 3 && m6 == 1 {
+		return "Высокий роллер проклятый", "неУдачливая легенда"
+	}
+
+	return "", ""
 }

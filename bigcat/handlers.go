@@ -28,6 +28,7 @@ type BotHandler struct {
 	tgbot  *tele.Bot
 	serv   *servitor.Servitor
 	flags  *silly
+	brain  *BigBrain
 	comfig *config.AppConfig
 	logger *slog.Logger
 }
@@ -39,7 +40,7 @@ func (bh *BotHandler) AddHandler() {
 	}
 
 	bh.tgbot.Handle(tele.OnText, func(c tele.Context) error {
-		return CommandHandler(c, bh.serv, bh.flags, bh.comfig, bh.logger)
+		return CommandHandler(c, bh.serv, bh.flags, bh.brain, bh.comfig, bh.logger)
 	})
 	bh.tgbot.Handle("/start", func(c tele.Context) error {
 		return c.Send("пливет!", menu)
@@ -78,6 +79,21 @@ func (bh *BotHandler) AddHandler() {
 		return c.Send("копочка-наёбочка")
 	})
 	bh.tgbot.Handle(tele.OnPhoto, func(c tele.Context) error {
+		// Metatron checks and actions
+		// private chat only
+		if c.Message().Private() {
+			// check if user is on the bot/metatron list and set metatron flag on
+			if _, ok := bh.brain.UsersFlags[c.Sender().ID]; ok {
+				bh.logger.Info("user found:", c.Sender().ID)
+			} else {
+				bh.logger.Info("user not found:", c.Sender().ID)
+				return nil
+			}
+			val := bh.brain.UsersFlags[c.Sender().ID]
+			if val.MetatronFordwardFlag {
+				return c.ForwardTo(&tele.Chat{ID: val.MetatronChat})
+			}
+		}
 		return nil
 	})
 	bh.tgbot.Handle(tele.OnDocument, func(c tele.Context) error {
