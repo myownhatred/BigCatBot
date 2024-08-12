@@ -96,6 +96,24 @@ func (bh *BotHandler) AddHandler() {
 		}
 		return nil
 	})
+	bh.tgbot.Handle(tele.OnVideo, func(c tele.Context) error {
+		// Metatron checks and actions
+		// private chat only
+		if c.Message().Private() {
+			// check if user is on the bot/metatron list and set metatron flag on
+			if _, ok := bh.brain.UsersFlags[c.Sender().ID]; ok {
+				bh.logger.Info("user found:", c.Sender().ID)
+			} else {
+				bh.logger.Info("user not found:", c.Sender().ID)
+				return nil
+			}
+			val := bh.brain.UsersFlags[c.Sender().ID]
+			if val.MetatronFordwardFlag {
+				return c.ForwardTo(&tele.Chat{ID: val.MetatronChat})
+			}
+		}
+		return nil
+	})
 	bh.tgbot.Handle(tele.OnDocument, func(c tele.Context) error {
 		//TODO: rewrite for good
 		if !bh.flags.AnimeOpeningsUploadFlag {

@@ -45,7 +45,7 @@ func (rekt *GetRektResty) GetWeatherDayForecast(place string) (report string, er
 	// TODO: add timezone/timeshift to function signature
 	// timezone shift to GMT+7
 	currentTime := time.Now()
-	newTime := currentTime.Add(7 * time.Hour)
+	newTime := currentTime.Add(1 * time.Hour)
 	day := newTime.Day()
 	var windf, hurrf, coldf, hotf, rainf bool
 	report += "Прогноз:\n"

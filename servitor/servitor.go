@@ -5,6 +5,7 @@ import (
 	"Guenhwyvar/config"
 	"Guenhwyvar/entities"
 	"log/slog"
+	"time"
 
 	tele "gopkg.in/telebot.v3"
 )
@@ -56,9 +57,12 @@ type MediaCreator interface {
 }
 
 type Police interface {
-	UserDefaultCheck(UserID int64, username, firstname, lastname, command string) (err error)
+	UserDefaultCheck(UserID int64, username, firstname, lastname, command string) (ID int64, err error)
 	MetatronChatAdd(ChatID int64, ChatName string) (err error)
 	MetatronChatList() (IDs []int64, ChatIDs []int64, Names []string, err error)
+	Achieves(GRID int) (IDs []int, GRIDs []int, Names []string, Ranks []int, Descrs []string, err error)
+	UserAchs(UserID int64) (IDs []int, UserIDs []int64, AchIDs []int, Dates []time.Time, Chats []string, ChatIDs []int64, err error)
+	UserAchAdd(UserID int64, AID int, chat string, chatID int64) (UAID int, err error)
 }
 
 type Servitor struct {
