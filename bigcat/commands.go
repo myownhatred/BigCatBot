@@ -4,6 +4,7 @@ import (
 	bigcat "Guenhwyvar/bigcat/games"
 	"Guenhwyvar/config"
 	"Guenhwyvar/entities"
+	dnd "Guenhwyvar/lib/DND"
 	"Guenhwyvar/lib/memser"
 	"Guenhwyvar/servitor"
 	"fmt"
@@ -594,9 +595,9 @@ func DnDRollChar(c tele.Context, serv *servitor.Servitor, brain *BigBrain) error
 
 	rand.Seed(time.Now().UnixNano())
 
-	gender := []string{"Спермобак", "Вагинокапиталист", "Мунгендер", "Агендер", "Гендервой", "Нонбайори"}
-	racces := []string{"Дворф", "Халфлинг", "Хуманс", "Эльф", "Гнум", "Драгонборн", "Полуорк", "Полуэльф", "Тифлинг"}
-	clases := []string{"Бесполезный", "Барбариан", "Солдат", "Визард", "Друль", "Жрец", "Колдун", "Монк", "ПаллАдин", "Шельма", "Следопыт", "Военный Замок"}
+	gender := []string{"Спермобак", "Вагинокапиталист", "Мунгендер", "Агендер", "Гендервой", "Гендервойд", "Нонбайори", "Ксеногендер"}
+	racces := []string{"Дворф", "Халфлинг", "Хуманс", "Эльф", "Дроу", "Гнум", "Драгонборн", "Полуэльф", "Полуорк", "Тифлинг"}
+	clases := []string{"Изобретатель", "Барбариан", "Бард", "Жрец", "Друид", "Солдат", "Монк", "ПаллАдин", "Егерь", "Шельма", "Колдун", "Военный Замок", "Визадр"}
 	message := c.Message().Sender.Username + " твой перец(а/я/мы):\n"
 	message += "Гендир: " + gender[rand.Intn(len(gender))] + "\n"
 	race := racces[rand.Intn(len(racces))]
@@ -615,13 +616,17 @@ func DnDRollChar(c tele.Context, serv *servitor.Servitor, brain *BigBrain) error
 	message += "Мудрость: " + strconv.Itoa(wis) + "\n"
 	cha := dice3of4i()
 	message += "Харя: " + strconv.Itoa(cha) + "\n"
-	ach, title, desc, achID := DNDStatsAchievement(str, dex, con, inn, wis, cha)
+	chel := dnd.RollChar()
+	//ach, title, desc, achID := DNDStatsAchievement(str, dex, con, inn, wis, cha)
+	ach, title, desc, achID := DNDStatsAchievement(chel.CharStats())
+	message2 := c.Message().Sender.Username + " твой перец(а/я/мы):\n"
+	message2 += chel.Generation
 	if ach == "" {
-		return c.Send(message)
+		return c.Send(message2)
 	} else {
-		message += "Твой титул: " + title + "\n"
-		message += "И у тебя ачивка: " + ach + "\n"
-		message += "Описание ачивки: " + desc + "\n"
+		message2 += "Твой титул: " + title + "\n"
+		message2 += "И у тебя ачивка: " + ach + "\n"
+		message2 += "Описание ачивки: " + desc + "\n"
 		if achID != 0 {
 			_, _ = serv.UserAchAdd(SenderID, achID, c.Chat().Title, c.Chat().ID)
 		}
@@ -633,7 +638,7 @@ func DnDRollChar(c tele.Context, serv *servitor.Servitor, brain *BigBrain) error
 		}
 
 		brain.Party[SenderID] = person
-		return c.Send(message)
+		return c.Send(message2)
 	}
 }
 
