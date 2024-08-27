@@ -11,49 +11,67 @@ type Gender string
 type Race string
 type Class string
 type Location string
+type DamageType string
+type WeaponProperty string
 
 const (
-	Spermtank         Gender   = "спермобак"
-	Vaginacapitallist Gender   = "вагинокапиталист"
-	Moongender        Gender   = "мунгендер"
-	Agender           Gender   = "агендер"
-	Gendervoy         Gender   = "гендервой"
-	Gendervoid        Gender   = "гендервойд"
-	Nonbinary         Gender   = "нонбайори"
-	Xenogender        Gender   = "ксеногендер"
-	Dwarf             Race     = "дворф"
-	Halfling          Race     = "халфлинг"
-	Human             Race     = "хуманс"
-	Elf               Race     = "эльф"
-	Drow              Race     = "драу"
-	Gnome             Race     = "гнум"
-	Dragonborn        Race     = "драгонборн"
-	Halforc           Race     = "полуорк"
-	Halfelf           Race     = "полуэльф"
-	Tiefling          Race     = "тифлинг"
-	Artificer         Class    = "изобретатель"
-	Barbarian         Class    = "барбариан"
-	Bard              Class    = "бард"
-	Cleric            Class    = "жрец"
-	Druid             Class    = "друль"
-	Fighter           Class    = "солдат"
-	Monk              Class    = "монк"
-	Paladin           Class    = "паллАдин"
-	Ranger            Class    = "егерь"
-	Rogue             Class    = "шельма"
-	Sorcerer          Class    = "колдун"
-	Warlock           Class    = "военный замок"
-	Wizard            Class    = "визард"
-	Bar               Location = "Бар"
-	Temple            Location = "Храм"
-	Tavern            Location = "Таверна"
+	Spermtank         Gender         = "спермобак"
+	Vaginacapitallist Gender         = "вагинокапиталист"
+	Moongender        Gender         = "мунгендер"
+	Agender           Gender         = "агендер"
+	Gendervoy         Gender         = "гендервой"
+	Gendervoid        Gender         = "гендервойд"
+	Nonbinary         Gender         = "нонбайори"
+	Xenogender        Gender         = "ксеногендер"
+	Dwarf             Race           = "дворф"
+	Halfling          Race           = "халфлинг"
+	Human             Race           = "хуманс"
+	Elf               Race           = "эльф"
+	Drow              Race           = "драу"
+	Gnome             Race           = "гнум"
+	Dragonborn        Race           = "драгонборн"
+	Halforc           Race           = "полуорк"
+	Halfelf           Race           = "полуэльф"
+	Tiefling          Race           = "тифлинг"
+	Artificer         Class          = "изобретатель"
+	Barbarian         Class          = "барбариан"
+	Bard              Class          = "бард"
+	Cleric            Class          = "жрец"
+	Druid             Class          = "друль"
+	Fighter           Class          = "солдат"
+	Monk              Class          = "монк"
+	Paladin           Class          = "паллАдин"
+	Ranger            Class          = "егерь"
+	Rogue             Class          = "шельма"
+	Sorcerer          Class          = "колдун"
+	Warlock           Class          = "военный замок"
+	Wizard            Class          = "визард"
+	Bar               Location       = "Бар"
+	Temple            Location       = "Храм"
+	Tavern            Location       = "Таверна"
+	DamageDubas       DamageType     = "дубасящий"
+	DamagePierce      DamageType     = "колющий"
+	DamageSlash       DamageType     = "режущий"
+	WPVersatile       WeaponProperty = "универсальное"
+	WPFencing         WeaponProperty = "Фехтовальное"
 )
+
+type Weapon struct {
+	Name        string
+	CostGold    int
+	CostSilver  int
+	DamType     DamageType
+	Weight      int
+	DamageRolls int
+	DamageDice  int
+}
 
 type Char struct {
 	Name       string
 	Gender     Gender
 	Race       Race
 	Class      Class
+	Hitpoints  int
 	AC         int
 	Str        int
 	Dex        int
@@ -62,6 +80,7 @@ type Char struct {
 	Wis        int
 	Cha        int
 	Level      int
+	Weapon     *Weapon
 	Generation string
 }
 
@@ -78,9 +97,7 @@ func RollChar() Char {
 	genders := []Gender{Spermtank, Vaginacapitallist, Moongender, Agender, Gendervoy, Gendervoid, Nonbinary, Xenogender}
 	races := []Race{Dwarf, Halfling, Human, Elf, Drow, Gnome, Dragonborn, Halfelf, Halforc, Tiefling}
 	classes := []Class{Artificer, Barbarian, Bard, Cleric, Druid, Fighter, Monk, Paladin, Ranger, Rogue, Sorcerer, Warlock, Wizard}
-	rand.Seed(time.Now().UnixNano())
 	var chel Char
-	tmp := ""
 	chel.Gender = genders[rand.Intn(len(genders))]
 	chel.Class = classes[rand.Intn(len(classes))]
 	chel.Race = races[rand.Intn(len(races))]
@@ -97,65 +114,90 @@ func RollChar() Char {
 			bon2 = rand.Intn(5)
 		}
 	}
-	chel.Str, tmp = dice3of4()
+	chel.Str, _ = dice3of4()
 	if chel.Race == Dwarf || chel.Race == Dragonborn || chel.Race == Halforc {
-		chel.Generation += "Сила: " + tmp + " +2\n"
 		chel.Str += 2
 	} else if bon1 == 0 || bon2 == 0 || chel.Race == Human {
-		chel.Generation += "Сила: " + tmp + " +1\n"
 		chel.Str += 1
-	} else {
-		chel.Generation += "Сила: " + tmp + "\n"
 	}
-	chel.Dex, tmp = dice3of4()
+	chel.Generation += "Сила: " + strconv.Itoa(chel.Str) + "\n"
+	chel.Dex, _ = dice3of4()
 	if chel.Race == Halfling || chel.Race == Elf {
-		chel.Generation += "Ловкость: " + tmp + " +2\n"
 		chel.Dex += 2
 	} else if bon1 == 1 || bon2 == 1 || chel.Race == Human {
-		chel.Generation += "Ловкость: " + tmp + " +1\n"
 		chel.Dex += 1
-	} else {
-		chel.Generation += "Ловкость: " + tmp + "\n"
 	}
-	chel.Con, tmp = dice3of4()
+	chel.Generation += "Ловкость: " + strconv.Itoa(chel.Dex) + "\n"
+	chel.Con, _ = dice3of4()
 	if chel.Race == Dwarf {
-		chel.Generation += "Телосложение: " + tmp + " +2\n"
 		chel.Con += 2
 	} else if chel.Race == Halforc || bon1 == 2 || bon2 == 2 || chel.Race == Human {
-		chel.Generation += "Телосложение: " + tmp + " +1\n"
 		chel.Con += 1
-	} else {
-		chel.Generation += "Телосложение: " + tmp + "\n"
 	}
-	chel.Intl, tmp = dice3of4()
+	chel.Generation += "Телосложение: " + strconv.Itoa(chel.Con) + "\n"
+	chel.Intl, _ = dice3of4()
 	if chel.Race == Gnome {
-		chel.Generation += "Интеллект: " + tmp + " +2\n"
 		chel.Intl += 2
 	} else if bon1 == 3 || bon2 == 3 || chel.Race == Tiefling || chel.Race == Human {
-		chel.Generation += "Интеллект: " + tmp + " +1\n"
 		chel.Intl += 1
-	} else {
-		chel.Generation += "Интеллект: " + tmp + "\n"
 	}
-	chel.Wis, tmp = dice3of4()
+	chel.Generation += "Интеллект: " + strconv.Itoa(chel.Intl) + "\n"
+	chel.Wis, _ = dice3of4()
 	if bon1 == 4 || bon2 == 4 || chel.Race == Human {
-		chel.Generation += "Мудрость: " + tmp + " +1\n"
 		chel.Wis += 1
-	} else {
-		chel.Generation += "Мудрость: " + tmp + "\n"
 	}
-	chel.Cha, tmp = dice3of4()
+	chel.Generation += "Мудрость: " + strconv.Itoa(chel.Wis) + "\n"
+	chel.Cha, _ = dice3of4()
 	if chel.Race == Halfelf || chel.Race == Tiefling {
-		chel.Generation += "Харя: " + tmp + " +2\n"
 		chel.Cha += 2
-	} else if chel.Race == Dragonborn || chel.Race == Human {
-		chel.Generation += "Харя: " + tmp + " +1\n"
+	} else if chel.Race == Dragonborn || chel.Race == Human || chel.Race == Drow {
 		chel.Cha += 1
-	} else {
-		chel.Generation += "Харя: " + tmp + "\n"
 	}
+	chel.Generation += "Харя: " + strconv.Itoa(chel.Cha) + "\n"
+
 	chel.Level = 1
 
+	// hit points
+	switch chel.Class {
+	case Artificer:
+		chel.Hitpoints = 8 + calculateBonus(chel.Con)
+	case Barbarian:
+		chel.Hitpoints = 12 + calculateBonus(chel.Con)
+	case Bard:
+		chel.Hitpoints = 8 + calculateBonus(chel.Con)
+	case Cleric:
+		chel.Hitpoints = 8 + calculateBonus(chel.Con)
+	case Druid:
+		chel.Hitpoints = 8 + calculateBonus(chel.Con)
+	case Fighter:
+		chel.Hitpoints = 10 + calculateBonus(chel.Con)
+	case Monk:
+		chel.Hitpoints = 8 + calculateBonus(chel.Con)
+	case Paladin:
+		chel.Hitpoints = 10 + calculateBonus(chel.Con)
+	case Ranger:
+		chel.Hitpoints = 10 + calculateBonus(chel.Con)
+	case Rogue:
+		chel.Hitpoints = 8 + calculateBonus(chel.Con)
+	case Sorcerer:
+		chel.Hitpoints = 6 + calculateBonus(chel.Con)
+	case Warlock:
+		chel.Hitpoints = 8 + calculateBonus(chel.Con)
+	case Wizard:
+		chel.Hitpoints = 6 + calculateBonus(chel.Con)
+	}
+
+	chel.Generation += "Хиты: " + strconv.Itoa(chel.Hitpoints) + "\n"
+
+	var dub Weapon
+	dub.Name = "дубинка"
+	if chel.Cha > 15 && chel.Con > 15 && chel.Gender != Vaginacapitallist {
+		dub.Name = "пенис большой"
+	}
+	dub.DamType = DamageDubas
+	dub.DamageRolls = 1
+	dub.DamageDice = 4
+	chel.Weapon = &dub
 	return chel
 }
 
@@ -210,9 +252,25 @@ func dice3of4() (val int, scrib string) {
 	return summ - min, scrib
 }
 
+func dice8() (val int) {
+	return rand.Intn(8) + 1
+}
+
+func dice12() (val int) {
+	return rand.Intn(12) + 1
+}
+
 func ifDicesStat(stat int) bool {
 	if stat < 3 || stat > 18 {
 		return false
 	}
 	return true
+}
+
+func calculateBonus(value int) int {
+	if value > 10 {
+		return (value - 10) / 2
+	} else {
+		return (value - 11) / 2 // This will give -1 for 9 or 8
+	}
 }

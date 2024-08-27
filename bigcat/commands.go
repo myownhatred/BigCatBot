@@ -621,6 +621,7 @@ func DnDRollChar(c tele.Context, serv *servitor.Servitor, brain *BigBrain) error
 	ach, title, desc, achID := DNDStatsAchievement(chel.CharStats())
 	message2 := c.Message().Sender.Username + " твой перец(а/я/мы):\n"
 	message2 += chel.Generation
+	message2 += "Вооружон " + string(chel.Weapon.Name) + "\n"
 	if ach == "" {
 		return c.Send(message2)
 	} else {
