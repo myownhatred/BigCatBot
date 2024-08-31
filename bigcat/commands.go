@@ -540,11 +540,20 @@ func CmdUserAchList(c tele.Context, serv *servitor.Servitor) (err error) {
 }
 
 func DnDParty(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
-	message := "наша ⚔️мощная⚔️ ватага:"
+	message := "наша ⚔️мощная⚔️ ватага:\n"
 	for _, pers := range brain.Party {
-		message += pers.Name + " " + pers.Title + " : " + pers.Race + "-" + pers.Class + "\n"
+		message += pers.Name + " " + pers.Title + " : " + string(pers.Race) + "-" + string(pers.Class) + "\n"
 	}
-	return c.Send(message)
+	message += "вы находитесь в деревне скрытого листа и можете идти в такие места: "
+	incButtons := &tele.ReplyMarkup{ResizeKeyboard: true}
+
+	var rows []tele.Row
+	rows = append(rows, incButtons.Row(incButtons.Data("Бар \"Пьяный Шакал\"", "DBDtoBar")))
+
+	rows = append(rows, incButtons.Row(incButtons.Data("скрыть", "sweep")))
+	incButtons.Inline(rows...)
+	return c.Send(message, incButtons)
+
 }
 
 func CmdUserAchAdd(c tele.Context, serv *servitor.Servitor) (err error) {
@@ -593,36 +602,18 @@ func DnDRollChar(c tele.Context, serv *servitor.Servitor, brain *BigBrain) error
 		return c.Send(err.Error())
 	}
 
-	rand.Seed(time.Now().UnixNano())
-
-	gender := []string{"Спермобак", "Вагинокапиталист", "Мунгендер", "Агендер", "Гендервой", "Гендервойд", "Нонбайори", "Ксеногендер"}
-	racces := []string{"Дворф", "Халфлинг", "Хуманс", "Эльф", "Дроу", "Гнум", "Драгонборн", "Полуэльф", "Полуорк", "Тифлинг"}
-	clases := []string{"Изобретатель", "Барбариан", "Бард", "Жрец", "Друид", "Солдат", "Монк", "ПаллАдин", "Егерь", "Шельма", "Колдун", "Военный Замок", "Визадр"}
-	message := c.Message().Sender.Username + " твой перец(а/я/мы):\n"
-	message += "Гендир: " + gender[rand.Intn(len(gender))] + "\n"
-	race := racces[rand.Intn(len(racces))]
-	message += "Расса: " + race + "\n"
-	class := clases[rand.Intn(len(clases))]
-	message += "Клас: " + class + "\n"
-	str := dice3of4i()
-	message += "Сила: " + strconv.Itoa(str) + "\n"
-	dex := dice3of4i()
-	message += "Ловкость: " + strconv.Itoa(dex) + "\n"
-	con := dice3of4i()
-	message += "Телосложение: " + strconv.Itoa(con) + "\n"
-	inn := dice3of4i()
-	message += "Интеллект: " + strconv.Itoa(inn) + "\n"
-	wis := dice3of4i()
-	message += "Мудрость: " + strconv.Itoa(wis) + "\n"
-	cha := dice3of4i()
-	message += "Харя: " + strconv.Itoa(cha) + "\n"
 	chel := dnd.RollChar()
+	chel.Name = username
 	//ach, title, desc, achID := DNDStatsAchievement(str, dex, con, inn, wis, cha)
 	ach, title, desc, achID := DNDStatsAchievement(chel.CharStats())
 	message2 := c.Message().Sender.Username + " твой перец(а/я/мы):\n"
 	message2 += chel.Generation
 	message2 += "Вооружон " + string(chel.Weapon.Name) + "\n"
+	message2 += "Адет " + string(chel.Armor.Name) + "\n"
+
 	if ach == "" {
+		brain.Party[SenderID] = chel
+		brain.Game.Party[SenderID] = chel
 		return c.Send(message2)
 	} else {
 		message2 += "Твой титул: " + title + "\n"
@@ -631,14 +622,9 @@ func DnDRollChar(c tele.Context, serv *servitor.Servitor, brain *BigBrain) error
 		if achID != 0 {
 			_, _ = serv.UserAchAdd(SenderID, achID, c.Chat().Title, c.Chat().ID)
 		}
-		person := Pers{
-			Name:  username,
-			Class: class,
-			Title: title,
-			Race:  race,
-		}
-
-		brain.Party[SenderID] = person
+		chel.Title = title
+		brain.Party[SenderID] = chel
+		brain.Game.Party[SenderID] = chel
 		return c.Send(message2)
 	}
 }

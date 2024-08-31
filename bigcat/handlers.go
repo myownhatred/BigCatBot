@@ -58,7 +58,7 @@ func (bh *BotHandler) AddHandler() {
 	})
 
 	bh.tgbot.Handle(tele.OnCallback, func(c tele.Context) error {
-		return CallbackHandler(c, bh.serv)
+		return CallbackHandler(c, bh.serv, bh.brain)
 	})
 
 	bh.tgbot.Handle(tele.OnAddedToGroup, func(c tele.Context) error {

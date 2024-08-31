@@ -10,64 +10,59 @@ import (
 type Gender string
 type Race string
 type Class string
-type Location string
 type DamageType string
-type WeaponProperty string
 
 const (
-	Spermtank         Gender         = "спермобак"
-	Vaginacapitallist Gender         = "вагинокапиталист"
-	Moongender        Gender         = "мунгендер"
-	Agender           Gender         = "агендер"
-	Gendervoy         Gender         = "гендервой"
-	Gendervoid        Gender         = "гендервойд"
-	Nonbinary         Gender         = "нонбайори"
-	Xenogender        Gender         = "ксеногендер"
-	Dwarf             Race           = "дворф"
-	Halfling          Race           = "халфлинг"
-	Human             Race           = "хуманс"
-	Elf               Race           = "эльф"
-	Drow              Race           = "драу"
-	Gnome             Race           = "гнум"
-	Dragonborn        Race           = "драгонборн"
-	Halforc           Race           = "полуорк"
-	Halfelf           Race           = "полуэльф"
-	Tiefling          Race           = "тифлинг"
-	Artificer         Class          = "изобретатель"
-	Barbarian         Class          = "барбариан"
-	Bard              Class          = "бард"
-	Cleric            Class          = "жрец"
-	Druid             Class          = "друль"
-	Fighter           Class          = "солдат"
-	Monk              Class          = "монк"
-	Paladin           Class          = "паллАдин"
-	Ranger            Class          = "егерь"
-	Rogue             Class          = "шельма"
-	Sorcerer          Class          = "колдун"
-	Warlock           Class          = "военный замок"
-	Wizard            Class          = "визард"
-	Bar               Location       = "Бар"
-	Temple            Location       = "Храм"
-	Tavern            Location       = "Таверна"
-	DamageDubas       DamageType     = "дубасящий"
-	DamagePierce      DamageType     = "колющий"
-	DamageSlash       DamageType     = "режущий"
-	WPVersatile       WeaponProperty = "универсальное"
-	WPFencing         WeaponProperty = "Фехтовальное"
+	Spermtank         Gender = "спермобак"
+	Vaginacapitallist Gender = "вагинокапиталист"
+	Moongender        Gender = "мунгендер"
+	Agender           Gender = "агендер"
+	Gendervoy         Gender = "гендервой"
+	Gendervoid        Gender = "гендервойд"
+	Nonbinary         Gender = "нонбайори"
+	Xenogender        Gender = "ксеногендер"
+	Dwarf             Race   = "дворф"
+	Halfling          Race   = "халфлинг"
+	Human             Race   = "хуманс"
+	Elf               Race   = "эльф"
+	Drow              Race   = "драу"
+	Gnome             Race   = "гнум"
+	Dragonborn        Race   = "драгонборн"
+	Halforc           Race   = "полуорк"
+	Halfelf           Race   = "полуэльф"
+	Tiefling          Race   = "тифлинг"
+	Artificer         Class  = "изобретатель"
+	Barbarian         Class  = "барбариан"
+	Bard              Class  = "бард"
+	Cleric            Class  = "жрец"
+	Druid             Class  = "друль"
+	Fighter           Class  = "солдат"
+	Monk              Class  = "монк"
+	Paladin           Class  = "паллАдин"
+	Ranger            Class  = "егерь"
+	Rogue             Class  = "шельма"
+	Sorcerer          Class  = "колдун"
+	Warlock           Class  = "военный замок"
+	Wizard            Class  = "визард"
+
+	DamageDubas  DamageType = "дубасящий"
+	DamagePierce DamageType = "колющий"
+	DamageSlash  DamageType = "режущий"
 )
 
-type Weapon struct {
-	Name        string
-	CostGold    int
-	CostSilver  int
-	DamType     DamageType
-	Weight      int
-	DamageRolls int
-	DamageDice  int
+type Armor struct {
+	Name           string
+	CostGold       int
+	CostSilver     int
+	AC             int
+	NeededStrength int
+	BadStealth     bool
+	Weight         int
 }
 
 type Char struct {
 	Name       string
+	Title      string
 	Gender     Gender
 	Race       Race
 	Class      Class
@@ -81,6 +76,7 @@ type Char struct {
 	Cha        int
 	Level      int
 	Weapon     *Weapon
+	Armor      *Armor
 	Generation string
 }
 
@@ -120,40 +116,40 @@ func RollChar() Char {
 	} else if bon1 == 0 || bon2 == 0 || chel.Race == Human {
 		chel.Str += 1
 	}
-	chel.Generation += "Сила: " + strconv.Itoa(chel.Str) + "\n"
+	chel.Generation += "💪Сила: " + strconv.Itoa(chel.Str) + "\n"
 	chel.Dex, _ = dice3of4()
 	if chel.Race == Halfling || chel.Race == Elf {
 		chel.Dex += 2
 	} else if bon1 == 1 || bon2 == 1 || chel.Race == Human {
 		chel.Dex += 1
 	}
-	chel.Generation += "Ловкость: " + strconv.Itoa(chel.Dex) + "\n"
+	chel.Generation += "🐈‍⬛Ловкость: " + strconv.Itoa(chel.Dex) + "\n"
 	chel.Con, _ = dice3of4()
 	if chel.Race == Dwarf {
 		chel.Con += 2
 	} else if chel.Race == Halforc || bon1 == 2 || bon2 == 2 || chel.Race == Human {
 		chel.Con += 1
 	}
-	chel.Generation += "Телосложение: " + strconv.Itoa(chel.Con) + "\n"
+	chel.Generation += "🦍Телосложение: " + strconv.Itoa(chel.Con) + "\n"
 	chel.Intl, _ = dice3of4()
 	if chel.Race == Gnome {
 		chel.Intl += 2
 	} else if bon1 == 3 || bon2 == 3 || chel.Race == Tiefling || chel.Race == Human {
 		chel.Intl += 1
 	}
-	chel.Generation += "Интеллект: " + strconv.Itoa(chel.Intl) + "\n"
+	chel.Generation += "🧠Интеллект: " + strconv.Itoa(chel.Intl) + "\n"
 	chel.Wis, _ = dice3of4()
 	if bon1 == 4 || bon2 == 4 || chel.Race == Human {
 		chel.Wis += 1
 	}
-	chel.Generation += "Мудрость: " + strconv.Itoa(chel.Wis) + "\n"
+	chel.Generation += "🧙‍♂️Мудрость: " + strconv.Itoa(chel.Wis) + "\n"
 	chel.Cha, _ = dice3of4()
 	if chel.Race == Halfelf || chel.Race == Tiefling {
 		chel.Cha += 2
 	} else if chel.Race == Dragonborn || chel.Race == Human || chel.Race == Drow {
 		chel.Cha += 1
 	}
-	chel.Generation += "Харя: " + strconv.Itoa(chel.Cha) + "\n"
+	chel.Generation += "👨‍❤️‍💋‍👨Харя: " + strconv.Itoa(chel.Cha) + "\n"
 
 	chel.Level = 1
 
@@ -187,17 +183,20 @@ func RollChar() Char {
 		chel.Hitpoints = 6 + calculateBonus(chel.Con)
 	}
 
-	chel.Generation += "Хиты: " + strconv.Itoa(chel.Hitpoints) + "\n"
+	chel.Generation += "❤️Хиты: " + strconv.Itoa(chel.Hitpoints) + "\n"
 
-	var dub Weapon
-	dub.Name = "дубинка"
-	if chel.Cha > 15 && chel.Con > 15 && chel.Gender != Vaginacapitallist {
-		dub.Name = "пенис большой"
-	}
-	dub.DamType = DamageDubas
-	dub.DamageRolls = 1
-	dub.DamageDice = 4
-	chel.Weapon = &dub
+	var weapon *Weapon
+	weapon = CreateWeaponCommon()
+	chel.Weapon = weapon
+	var quil Armor
+	quil.Name = "стёганый доспех"
+	quil.CostGold = 5
+	quil.AC = 11
+	quil.BadStealth = true
+	quil.Weight = 8
+	chel.Armor = &quil
+	chel.AC = chel.Armor.AC + calculateBonus(chel.Dex)
+	chel.Generation += "🛡️Армор: " + strconv.Itoa(chel.AC) + "\n"
 	return chel
 }
 

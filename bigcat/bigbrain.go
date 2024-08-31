@@ -2,6 +2,7 @@ package bigcat
 
 import (
 	"Guenhwyvar/config"
+	dnd "Guenhwyvar/lib/DND"
 
 	tele "gopkg.in/telebot.v3"
 )
@@ -16,7 +17,8 @@ const (
 type BigBrain struct {
 	Comfig     config.AppConfig
 	UsersFlags map[int64](UserRules)
-	Party      map[int64]Pers
+	Party      map[int64]dnd.Char
+	Game       *dnd.Game
 }
 
 type ChatRules struct {
@@ -43,6 +45,7 @@ func NewBigBrain() *BigBrain {
 	return &BigBrain{
 		Comfig:     config.AppConfig{},
 		UsersFlags: make(map[int64](UserRules)),
-		Party:      make(map[int64](Pers)),
+		Party:      make(map[int64](dnd.Char)),
+		Game:       dnd.NewGame(),
 	}
 }

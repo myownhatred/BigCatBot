@@ -15,11 +15,12 @@ const (
 	AnimeMawCB = "\fanimemaw"
 	GrobMawCB  = "\fgrobmaw"
 	FreeCB     = "\ffreemaw"
+	DBDtoBar   = "\fDBDtoBar"
 	// to remove inline buttons
 	Sweep = "\fsweep"
 )
 
-func CallbackHandler(c tele.Context, serv *servitor.Servitor) error {
+func CallbackHandler(c tele.Context, serv *servitor.Servitor, brain *BigBrain) error {
 	cbUniq := c.Callback().Data
 
 	// two block
@@ -71,6 +72,11 @@ func CallbackHandler(c tele.Context, serv *servitor.Servitor) error {
 			return c.Send(fmt.Sprintf("Неполучилось с бесплатным мавом: %s", err.Error()))
 		}
 		return c.Send(fmt.Sprintf("слусай %s %s", maw.Description, maw.Link))
+	case DBDtoBar:
+		_ = c.Respond(&tele.CallbackResponse{})
+		c.Delete()
+		brain.Game.SetCurrentLocation()
+		return c.Send(brain.Game.Lookaround())
 	case Sweep:
 		_ = c.Respond(&tele.CallbackResponse{})
 		c.Delete()
