@@ -1,5 +1,10 @@
 package dnd
 
+import (
+	"sort"
+	"strconv"
+)
+
 type Location struct {
 	Name        string
 	Description string
@@ -48,4 +53,33 @@ func (g *Game) Lookaround() string {
 	result += "похоже тут главный " + g.CurrentLocation.Host.Title + " " + g.CurrentLocation.Host.Name
 
 	return result
+}
+
+func (g *Game) Combat() string {
+	var order []Char
+
+	g.Locations[0].Host.Initiative = g.Locations[0].Host.GetInitiative()
+	order = append(order, *g.Locations[0].Host)
+	for _, c := range g.Party {
+		c.Initiative = c.GetInitiative()
+		order = append(order, c)
+	}
+	sort.Sort(ByInitiative(order))
+	message := "наши байцы будут выступать в таком порядке:\n"
+	for i, c := range order {
+		message += strconv.Itoa(i) + " - " + c.Name + " с инициативой " + strconv.Itoa(c.Initiative) + "\n"
+	}
+	return message
+}
+
+// sorting by initiatives
+type ByInitiative []Char
+
+func (a ByInitiative) Len() int { return len(a) }
+func (a ByInitiative) Less(i, j int) bool {
+	// Sort by initiative in ascending order
+	return a[i].Initiative < a[j].Initiative
+}
+func (a ByInitiative) Swap(i, j int) {
+	a[i], a[j] = a[j], a[i]
 }

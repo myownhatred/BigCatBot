@@ -22,10 +22,11 @@ const (
 	WPFencing   WeaponProperty = "фехтовальное"
 	WPLight     WeaponProperty = "лёгкое"
 	WPThrown    WeaponProperty = "метательное"
+	WPTwohanded WeaponProperty = "двуручное"
 )
 
 func CreateWeaponCommon() *Weapon {
-	switch rand.Intn(4) + 1 {
+	switch rand.Intn(6) + 1 {
 	case 1:
 		return CreateWeaponBattleStaff()
 	case 2:
@@ -34,6 +35,10 @@ func CreateWeaponCommon() *Weapon {
 		return CreateWeaponClub()
 	case 4:
 		return CreateWeaponDagger()
+	case 5:
+		return CreateWeaponHandaxe()
+	case 6:
+		return CreateWeaponJavelin()
 	}
 	return nil
 }
@@ -78,7 +83,7 @@ func CreateWeaponBattleStaff() *Weapon {
 
 func CreateWeaponDagger() *Weapon {
 	var dagger Weapon
-	dagger.Name = "кенджал"
+	dagger.Name = "Кенджал"
 	dagger.CostGold = 2
 	dagger.DamType = DamagePierce
 	dagger.DamageRolls = 1
@@ -89,4 +94,62 @@ func CreateWeaponDagger() *Weapon {
 	dagger.WeaponProperties = []WeaponProperty{WPLight, WPFencing, WPThrown}
 
 	return &dagger
+}
+
+func CreateWeaponHandaxe() *Weapon {
+	var handaxe Weapon
+	handaxe.Name = "Топорик"
+	handaxe.CostGold = 5
+	handaxe.DamType = DamageSlash
+	handaxe.DamageRolls = 1
+	handaxe.DamageDice = 6
+	handaxe.Weight = 2
+	handaxe.Range = 20
+	handaxe.LongRange = 60
+	handaxe.WeaponProperties = []WeaponProperty{WPLight, WPThrown}
+
+	return &handaxe
+}
+
+func CreateWeaponJavelin() *Weapon {
+	var javelin Weapon
+	javelin.Name = "Дротик"
+	javelin.CostSilver = 5
+	javelin.DamType = DamagePierce
+	javelin.DamageRolls = 1
+	javelin.DamageDice = 6
+	javelin.Weight = 2
+	javelin.Range = 30
+	javelin.LongRange = 120
+	javelin.WeaponProperties = []WeaponProperty{WPThrown}
+
+	return &javelin
+}
+
+func CreateWeaponLightHammer() *Weapon {
+	var lighthammer Weapon
+	lighthammer.Name = "Молоточек"
+	lighthammer.CostGold = 2
+	lighthammer.DamType = DamageDubas
+	lighthammer.DamageRolls = 1
+	lighthammer.DamageDice = 4
+	lighthammer.Weight = 2
+	lighthammer.Range = 20
+	lighthammer.LongRange = 60
+	lighthammer.WeaponProperties = []WeaponProperty{WPLight, WPThrown}
+
+	return &lighthammer
+}
+
+func CreateWeaponGreatclub() *Weapon {
+	var greatclub Weapon
+	greatclub.Name = "Дубина"
+	greatclub.CostSilver = 2
+	greatclub.DamType = DamageDubas
+	greatclub.DamageRolls = 1
+	greatclub.DamageDice = 8
+	greatclub.Weight = 10
+	greatclub.WeaponProperties = []WeaponProperty{WPTwohanded}
+
+	return &greatclub
 }

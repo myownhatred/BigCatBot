@@ -50,16 +50,6 @@ const (
 	DamageSlash  DamageType = "режущий"
 )
 
-type Armor struct {
-	Name           string
-	CostGold       int
-	CostSilver     int
-	AC             int
-	NeededStrength int
-	BadStealth     bool
-	Weight         int
-}
-
 type Char struct {
 	Name       string
 	Title      string
@@ -75,6 +65,7 @@ type Char struct {
 	Wis        int
 	Cha        int
 	Level      int
+	Initiative int
 	Weapon     *Weapon
 	Armor      *Armor
 	Generation string
@@ -116,42 +107,47 @@ func RollChar() Char {
 	} else if bon1 == 0 || bon2 == 0 || chel.Race == Human {
 		chel.Str += 1
 	}
-	chel.Generation += "💪Сила: " + strconv.Itoa(chel.Str) + "\n"
+	chel.Generation += "🦬Сила: " + strconv.Itoa(chel.Str) + "\n"
 	chel.Dex, _ = dice3of4()
 	if chel.Race == Halfling || chel.Race == Elf {
 		chel.Dex += 2
 	} else if bon1 == 1 || bon2 == 1 || chel.Race == Human {
 		chel.Dex += 1
 	}
-	chel.Generation += "🐈‍⬛Ловкость: " + strconv.Itoa(chel.Dex) + "\n"
+	chel.Generation += "🐈Ловкость: " + strconv.Itoa(chel.Dex) + "\n"
 	chel.Con, _ = dice3of4()
 	if chel.Race == Dwarf {
 		chel.Con += 2
 	} else if chel.Race == Halforc || bon1 == 2 || bon2 == 2 || chel.Race == Human {
 		chel.Con += 1
 	}
-	chel.Generation += "🦍Телосложение: " + strconv.Itoa(chel.Con) + "\n"
+	chel.Generation += "🐻Телосложение: " + strconv.Itoa(chel.Con) + "\n"
 	chel.Intl, _ = dice3of4()
 	if chel.Race == Gnome {
 		chel.Intl += 2
 	} else if bon1 == 3 || bon2 == 3 || chel.Race == Tiefling || chel.Race == Human {
 		chel.Intl += 1
 	}
-	chel.Generation += "🧠Интеллект: " + strconv.Itoa(chel.Intl) + "\n"
+	chel.Generation += "🦊Интеллект: " + strconv.Itoa(chel.Intl) + "\n"
 	chel.Wis, _ = dice3of4()
 	if bon1 == 4 || bon2 == 4 || chel.Race == Human {
 		chel.Wis += 1
 	}
-	chel.Generation += "🧙‍♂️Мудрость: " + strconv.Itoa(chel.Wis) + "\n"
+	chel.Generation += "🦉Мудрость: " + strconv.Itoa(chel.Wis) + "\n"
 	chel.Cha, _ = dice3of4()
 	if chel.Race == Halfelf || chel.Race == Tiefling {
 		chel.Cha += 2
 	} else if chel.Race == Dragonborn || chel.Race == Human || chel.Race == Drow {
 		chel.Cha += 1
 	}
-	chel.Generation += "👨‍❤️‍💋‍👨Харя: " + strconv.Itoa(chel.Cha) + "\n"
+	chel.Generation += "🦅Харя: " + strconv.Itoa(chel.Cha) + "\n"
 
 	chel.Level = 1
+
+	weapon := CreateWeaponCommon()
+	chel.Weapon = weapon
+	armor := CreateLightArmor()
+	chel.Armor = armor
 
 	// hit points
 	switch chel.Class {
@@ -173,6 +169,12 @@ func RollChar() Char {
 		chel.Hitpoints = 10 + calculateBonus(chel.Con)
 	case Ranger:
 		chel.Hitpoints = 10 + calculateBonus(chel.Con)
+		switch rand.Intn(2) + 1 {
+		case 1:
+			chel.Armor = CrateArmorScaleMail()
+		case 2:
+			chel.Armor = CrateArmorLeather()
+		}
 	case Rogue:
 		chel.Hitpoints = 8 + calculateBonus(chel.Con)
 	case Sorcerer:
@@ -184,17 +186,7 @@ func RollChar() Char {
 	}
 
 	chel.Generation += "❤️Хиты: " + strconv.Itoa(chel.Hitpoints) + "\n"
-
-	var weapon *Weapon
-	weapon = CreateWeaponCommon()
-	chel.Weapon = weapon
-	var quil Armor
-	quil.Name = "стёганый доспех"
-	quil.CostGold = 5
-	quil.AC = 11
-	quil.BadStealth = true
-	quil.Weight = 8
-	chel.Armor = &quil
+	// remake AC calc to use dex limitations for med armor
 	chel.AC = chel.Armor.AC + calculateBonus(chel.Dex)
 	chel.Generation += "🛡️Армор: " + strconv.Itoa(chel.AC) + "\n"
 	return chel
@@ -259,6 +251,10 @@ func dice12() (val int) {
 	return rand.Intn(12) + 1
 }
 
+func dice20() (val int) {
+	return rand.Intn(20) + 1
+}
+
 func ifDicesStat(stat int) bool {
 	if stat < 3 || stat > 18 {
 		return false
@@ -272,4 +268,8 @@ func calculateBonus(value int) int {
 	} else {
 		return (value - 11) / 2 // This will give -1 for 9 or 8
 	}
+}
+
+func (c *Char) GetInitiative() int {
+	return c.Dex + dice20()
 }

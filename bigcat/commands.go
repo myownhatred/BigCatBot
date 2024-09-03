@@ -59,6 +59,7 @@ const (
 	// dnd stuff
 	RollChar = "/rollcharhard"
 	Party    = "/dndparty"
+	Combat   = "/dndcombat"
 	// card stuff
 	Card = "/card"
 	// weather
@@ -100,7 +101,7 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 	if c.Message().Private() {
 		// check if user is on the bot/metatron list and set metatron flag on
 		if _, ok := brain.UsersFlags[c.Sender().ID]; ok {
-			logger.Info("user found:", c.Sender().ID)
+			logger.Info("user found:" + strconv.FormatInt(c.Sender().ID, 10))
 			val := brain.UsersFlags[c.Sender().ID]
 			if val.MetatronFordwardFlag {
 				if msgText[0] == "/stop" {
@@ -112,7 +113,7 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 				return c.ForwardTo(&tele.Chat{ID: val.MetatronChat})
 			}
 		} else {
-			logger.Info("user not found:", c.Sender().ID)
+			logger.Info("user not found:" + strconv.FormatInt(c.Sender().ID, 10))
 		}
 	}
 	command := msgText[0]
@@ -181,6 +182,8 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 		return DnDRollChar(c, serv, brain)
 	case Party:
 		return DnDParty(c, serv, brain)
+	case Combat:
+		return DnDCombat(c, serv, brain)
 	case Card:
 		return GetRandomCard(c)
 	case WeatherCurrent:
@@ -553,7 +556,11 @@ func DnDParty(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err err
 	rows = append(rows, incButtons.Row(incButtons.Data("скрыть", "sweep")))
 	incButtons.Inline(rows...)
 	return c.Send(message, incButtons)
+}
 
+func DnDCombat(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
+	message := brain.Game.Combat()
+	return c.Send(message)
 }
 
 func CmdUserAchAdd(c tele.Context, serv *servitor.Servitor) (err error) {
