@@ -1,6 +1,7 @@
 package bigcat
 
 import (
+	dnd "Guenhwyvar/lib/DND"
 	"Guenhwyvar/lib/memser"
 	"Guenhwyvar/servitor"
 	"fmt"
@@ -72,6 +73,7 @@ func (c *BigCat) Start() {
 	})
 	// weather report
 	c.clock.AddFunc("20 59 23 * * *", func() {
+		c.bigBrain.Game = dnd.NewGame()
 		report, err := c.serv.GetWeatherDayForecast("красноярск")
 		if err != nil {
 			c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, err.Error())

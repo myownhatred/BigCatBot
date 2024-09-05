@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
-	"time"
 )
 
 type Gender string
 type Race string
 type Class string
 type DamageType string
+type Stat string
 
 const (
 	Spermtank         Gender = "спермобак"
@@ -48,6 +48,13 @@ const (
 	DamageDubas  DamageType = "дубасящий"
 	DamagePierce DamageType = "колющий"
 	DamageSlash  DamageType = "режущий"
+
+	Strenght     Stat = "сила"
+	Dexterity    Stat = "ловкость"
+	Constitution Stat = "телосложение"
+	Intellegence Stat = "интеллект"
+	Wisidom      Stat = "мудрость"
+	Charisma     Stat = "харизма"
 )
 
 type Char struct {
@@ -192,7 +199,7 @@ func RollChar() Char {
 	return chel
 }
 
-func CharFromData(str, dex, con, intl, wis, cha, gender, race, class int) (Char, error) {
+func CharFromData(str, dex, con, intl, wis, cha, AC, hitpoints, gender, race, class int) (Char, error) {
 	var chel Char
 	// validity check if what
 	valid := ifDicesStat(str) && ifDicesStat(dex) && ifDicesStat(con) &&
@@ -218,6 +225,8 @@ func CharFromData(str, dex, con, intl, wis, cha, gender, race, class int) (Char,
 	chel.Intl = intl
 	chel.Wis = wis
 	chel.Cha = cha
+	chel.AC = AC
+	chel.Hitpoints = hitpoints
 	chel.Level = 1
 	return chel, nil
 }
@@ -227,7 +236,6 @@ func (char *Char) CharStats() (str, dex, con, intl, wis, cha int) {
 }
 
 func dice3of4() (val int, scrib string) {
-	rand.Seed(time.Now().UnixNano())
 	min := rand.Intn(6) + 1
 	summ := min
 	scrib += strconv.Itoa(min)
@@ -271,5 +279,36 @@ func calculateBonus(value int) int {
 }
 
 func (c *Char) GetInitiative() int {
-	return c.Dex + dice20()
+	return calculateBonus(c.Dex) + dice20()
+}
+
+func (c *Char) GetAttackDamage(target int) (int, string) {
+	//hit or miss
+	roll := dice20()
+	switch roll {
+	case 1:
+		return 0, "ролл 1 - кретинический промох"
+	case 20:
+		dmg := 0
+		for d := 0; d < 1; d++ {
+			for i := 0; i < c.Weapon.DamageRolls; i++ {
+				dmg += rand.Intn(c.Weapon.DamageDice) + 1
+			}
+		}
+		return dmg, fmt.Sprintf("ролл 20 - кретический крит попал на %d уроны", dmg)
+	default:
+		dmg := 0
+		mod := calculateBonus(c.Str)
+		if c.Weapon.ifFencing() {
+			mod = calculateBonus(c.Dex)
+		}
+		if roll+mod >= target {
+			for i := 0; i < c.Weapon.DamageRolls; i++ {
+				dmg += rand.Intn(c.Weapon.DamageDice) + 1
+			}
+			return dmg, fmt.Sprintf("ролл %d + мод %d попал на %d уроны", roll, mod, dmg)
+		} else {
+			return 0, fmt.Sprintf("ролл %d + мод %d промах ибучий", roll, mod)
+		}
+	}
 }

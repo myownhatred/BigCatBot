@@ -26,7 +26,7 @@ const (
 )
 
 func CreateWeaponCommon() *Weapon {
-	switch rand.Intn(6) + 1 {
+	switch rand.Intn(8) + 1 {
 	case 1:
 		return CreateWeaponBattleStaff()
 	case 2:
@@ -39,6 +39,10 @@ func CreateWeaponCommon() *Weapon {
 		return CreateWeaponHandaxe()
 	case 6:
 		return CreateWeaponJavelin()
+	case 7:
+		return CreateWeaponLightHammer()
+	case 8:
+		return CreateWeaponGreatclub()
 	}
 	return nil
 }
@@ -152,4 +156,13 @@ func CreateWeaponGreatclub() *Weapon {
 	greatclub.WeaponProperties = []WeaponProperty{WPTwohanded}
 
 	return &greatclub
+}
+
+func (w *Weapon) ifFencing() bool {
+	for _, p := range w.WeaponProperties {
+		if p == WPFencing {
+			return true
+		}
+	}
+	return false
 }

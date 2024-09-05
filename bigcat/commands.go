@@ -60,6 +60,7 @@ const (
 	RollChar = "/rollcharhard"
 	Party    = "/dndparty"
 	Combat   = "/dndcombat"
+	Attack   = "/dndattack"
 	// card stuff
 	Card = "/card"
 	// weather
@@ -184,6 +185,8 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 		return DnDParty(c, serv, brain)
 	case Combat:
 		return DnDCombat(c, serv, brain)
+	case Attack:
+		return DnDAttack(c, serv, brain)
 	case Card:
 		return GetRandomCard(c)
 	case WeatherCurrent:
@@ -547,11 +550,12 @@ func DnDParty(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err err
 	for _, pers := range brain.Party {
 		message += pers.Name + " " + pers.Title + " : " + string(pers.Race) + "-" + string(pers.Class) + "\n"
 	}
-	message += "вы находитесь в деревне скрытого листа и можете идти в такие места: "
+	message += "вы находитесь возле деревне скрытого листа и можете идти в такие места: "
 	incButtons := &tele.ReplyMarkup{ResizeKeyboard: true}
 
 	var rows []tele.Row
-	rows = append(rows, incButtons.Row(incButtons.Data("Бар \"Пьяный Шакал\"", "DBDtoBar")))
+	rows = append(rows, incButtons.Row(incButtons.Data("Бар \"Пьяный Шакал\"", "DNDtoBar")))
+	rows = append(rows, incButtons.Row(incButtons.Data("Площадь деревни скрытого листа", "DNDtoPlaza")))
 
 	rows = append(rows, incButtons.Row(incButtons.Data("скрыть", "sweep")))
 	incButtons.Inline(rows...)
@@ -560,6 +564,45 @@ func DnDParty(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err err
 
 func DnDCombat(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
 	message := brain.Game.Combat()
+	return c.Send(message)
+}
+
+func DnDAttack(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
+
+	if !brain.Game.CombatFlag {
+		return c.Send("битва не может начатться, сделайте /dndcombat")
+	}
+	if c.Message().Payload == "" {
+		return c.Send("введите номер залупатора из списка /dndcombat")
+	}
+	num, err := strconv.Atoi(c.Message().Payload)
+	if err != nil {
+		return c.Send("ваш интеллект явно ниже 10, введите чесло!")
+	}
+	if num < 0 || num > len(brain.Game.CombatOrder) {
+		return c.Send("номер залупатара вне грониц /dndcombat")
+	}
+	target := brain.Game.CombatOrder[num-1]
+	tarHP := target.Hitpoints
+	if target.Hitpoints <= 0 {
+		return c.Send("ваша цель метрва")
+	}
+	me := brain.Game.Party[c.Sender().ID]
+	message := ""
+	if me.Name == target.Name {
+		message += fmt.Sprintf("%s хуярит сам по себе (чистый термояд-дегенерат)\n", me.Name)
+	} else {
+		message += fmt.Sprintf("%s бьёт по %s\n", me.Name, target.Name)
+	}
+	dmg := 0
+	messagedmg := ""
+	dmg, messagedmg = me.GetAttackDamage(target.AC)
+	message += messagedmg
+	brain.Game.CombatOrder[num-1].Hitpoints -= dmg
+	if brain.Game.CombatOrder[num-1].Hitpoints <= 0 {
+		message += "\nцель perished"
+	}
+	message += fmt.Sprintf("\nхп цели: %d - %d = %d", tarHP, dmg, brain.Game.CombatOrder[num-1].Hitpoints)
 	return c.Send(message)
 }
 
