@@ -61,6 +61,7 @@ const (
 	Party    = "/dndparty"
 	Combat   = "/dndcombat"
 	Attack   = "/dndattack"
+	Turn     = "/dndturn"
 	// card stuff
 	Card = "/card"
 	// weather
@@ -187,6 +188,8 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 		return DnDCombat(c, serv, brain)
 	case Attack:
 		return DnDAttack(c, serv, brain)
+	case Turn:
+		return DnDCombatTurn(c, serv, brain)
 	case Card:
 		return GetRandomCard(c)
 	case WeatherCurrent:
@@ -567,8 +570,61 @@ func DnDCombat(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err er
 	return c.Send(message)
 }
 
-func DnDAttack(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
+func DnDCombatTurn(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
+	if !brain.Game.CombatFlag {
+		return c.Send("зачем ходить комбат если комбата и нет?")
+	}
+	message := "летс мортар комбат бегинс\n"
+	for _, char := range brain.Game.CombatOrder {
+		if char.IsNPC {
+			// stupid way to pick target for npc
+			for _, v := range brain.Game.Party {
+				endFlag := true
+				for validIndex, validTarget := range brain.Game.CombatOrder {
+					if v.Name == validTarget.Name && validTarget.Hitpoints > 0 {
+						endFlag = false
+						message += fmt.Sprintf("%s бьёт по %s\n", char.Name, validTarget.Name)
+						dmg, messagedmg := char.GetAttackDamage(validTarget.AC)
+						message += messagedmg
+						message += fmt.Sprintf("\nхп цели: %d - %d = %d\n", brain.Game.CombatOrder[validIndex].Hitpoints, dmg, brain.Game.CombatOrder[validIndex].Hitpoints-dmg)
+						brain.Game.CombatOrder[validIndex].Hitpoints -= dmg
+						if brain.Game.CombatOrder[validIndex].Hitpoints <= 0 {
+							message += "цель perished\n"
+						}
+					}
+				}
+				if endFlag {
+					message += "пахот нпц винс"
+					brain.Game.CombatFlag = false
+				}
+				break
+			}
+		}
+		if char.Target == nil {
+			continue
+		}
+		if char.Hitpoints <= 0 {
+			continue
+		}
+		target := char.Target
+		message += fmt.Sprintf("%s бьёт по %s\n", char.Name, target.Name)
+		dmg, messagedmg := char.GetAttackDamage(target.AC)
+		message += messagedmg
+		message += fmt.Sprintf("\nхп цели: %d - %d = %d\n", target.Hitpoints, dmg, target.Hitpoints-dmg)
+		target.Hitpoints -= dmg
+		if target.Hitpoints <= 0 {
+			message += "цель perished\n"
+			if target.Name == "Керилл" || target.Name == "Васян" {
+				message += "Со смертью этого персонажа комбат в этом месте заканчивается, идите в другое или живите дальше в проклятом мире, который сами и создали\n"
+				brain.Game.CombatFlag = false
+			}
+		}
 
+	}
+	return c.Send(message)
+}
+
+func DnDAttack(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
 	if !brain.Game.CombatFlag {
 		return c.Send("битва не может начатться, сделайте /dndcombat")
 	}
@@ -582,27 +638,30 @@ func DnDAttack(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err er
 	if num < 0 || num > len(brain.Game.CombatOrder) {
 		return c.Send("номер залупатара вне грониц /dndcombat")
 	}
+	me := brain.Game.Party[c.Sender().ID]
+
+	// assign target in order array (cringe)
+	meIndex := 0
+	for ind, char := range brain.Game.CombatOrder {
+		if me.Name == char.Name {
+			meIndex = ind
+			break
+		}
+	}
+	if brain.Game.CombatOrder[meIndex].Hitpoints <= 0 {
+		return c.Send("вы мертвы и не можете совершать действия")
+	}
 	target := brain.Game.CombatOrder[num-1]
-	tarHP := target.Hitpoints
 	if target.Hitpoints <= 0 {
 		return c.Send("ваша цель метрва")
 	}
-	me := brain.Game.Party[c.Sender().ID]
+	brain.Game.CombatOrder[meIndex].Target = &brain.Game.CombatOrder[num-1]
 	message := ""
 	if me.Name == target.Name {
-		message += fmt.Sprintf("%s хуярит сам по себе (чистый термояд-дегенерат)\n", me.Name)
+		message += fmt.Sprintf("%s решил хуярит сам по себе (чистый термояд-дегенерат)\n", me.Name)
 	} else {
-		message += fmt.Sprintf("%s бьёт по %s\n", me.Name, target.Name)
+		message += fmt.Sprintf("%s выбрал целью %s\n", me.Name, target.Name)
 	}
-	dmg := 0
-	messagedmg := ""
-	dmg, messagedmg = me.GetAttackDamage(target.AC)
-	message += messagedmg
-	brain.Game.CombatOrder[num-1].Hitpoints -= dmg
-	if brain.Game.CombatOrder[num-1].Hitpoints <= 0 {
-		message += "\nцель perished"
-	}
-	message += fmt.Sprintf("\nхп цели: %d - %d = %d", tarHP, dmg, brain.Game.CombatOrder[num-1].Hitpoints)
 	return c.Send(message)
 }
 

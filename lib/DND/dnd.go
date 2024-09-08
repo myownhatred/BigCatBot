@@ -75,6 +75,8 @@ type Char struct {
 	Initiative int
 	Weapon     *Weapon
 	Armor      *Armor
+	Target     *Char
+	IsNPC      bool
 	Generation string
 }
 
@@ -290,9 +292,9 @@ func (c *Char) GetAttackDamage(target int) (int, string) {
 		return 0, "ролл 1 - кретинический промох"
 	case 20:
 		dmg := 0
-		for d := 0; d < 1; d++ {
+		for d := 0; d < 2; d++ {
 			for i := 0; i < c.Weapon.DamageRolls; i++ {
-				dmg += rand.Intn(c.Weapon.DamageDice) + 1
+				dmg += rand.Intn(c.Weapon.DamageDice) + 1 + c.DnDCharGetWeaponBonus()
 			}
 		}
 		return dmg, fmt.Sprintf("ролл 20 - кретический крит попал на %d уроны", dmg)
@@ -304,11 +306,20 @@ func (c *Char) GetAttackDamage(target int) (int, string) {
 		}
 		if roll+mod >= target {
 			for i := 0; i < c.Weapon.DamageRolls; i++ {
-				dmg += rand.Intn(c.Weapon.DamageDice) + 1
+				dmg += rand.Intn(c.Weapon.DamageDice) + 1 + c.DnDCharGetWeaponBonus()
 			}
 			return dmg, fmt.Sprintf("ролл %d + мод %d попал на %d уроны", roll, mod, dmg)
 		} else {
 			return 0, fmt.Sprintf("ролл %d + мод %d промах ибучий", roll, mod)
 		}
 	}
+}
+
+func (c *Char) DnDCharGetWeaponBonus() int {
+	for _, p := range c.Weapon.WeaponProperties {
+		if p == WPFencing {
+			return calculateBonus(c.Dex)
+		}
+	}
+	return calculateBonus(c.Str)
 }

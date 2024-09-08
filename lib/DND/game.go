@@ -41,12 +41,15 @@ func NewGame() *Game {
 	barman.Title = "бармен"
 	barman.Class = ""
 	barman.Weapon = CreateWeaponClub()
+	barman.IsNPC = true
 
 	var bomzh Char
 	bomzh, _ = CharFromData(10, 10, 10, 10, 10, 10, 10, 4, 0, 2, 2)
 	bomzh.Name = "Керилл"
 	bomzh.Title = "бомж"
 	bomzh.Class = ""
+	bomzh.Weapon = CreateWeaponClub()
+	bomzh.IsNPC = true
 
 	var plaza Location
 
@@ -91,7 +94,7 @@ func (g *Game) Combat() string {
 	}
 	var order []Char
 
-	g.Locations[0].Host.Initiative = g.Locations[0].Host.GetInitiative()
+	//g.Locations[0].Host.Initiative = g.Locations[0].Host.GetInitiative()
 	g.CurrentLocation.Host.Initiative = g.CurrentLocation.Host.GetInitiative()
 	order = append(order, *g.CurrentLocation.Host)
 	for _, c := range g.Party {
