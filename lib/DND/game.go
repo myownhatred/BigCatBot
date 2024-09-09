@@ -36,7 +36,7 @@ type Game struct {
 
 func NewGame() *Game {
 	var barman Char
-	barman, _ = CharFromData(10, 10, 10, 10, 10, 10, 10, 8, 0, 2, 2)
+	barman, _ = CharFromData(10, 10, 10, 10, 10, 10, 13, 18, 0, 2, 2)
 	barman.Name = "Васян"
 	barman.Title = "бармен"
 	barman.Class = ""
@@ -44,7 +44,7 @@ func NewGame() *Game {
 	barman.IsNPC = true
 
 	var bomzh Char
-	bomzh, _ = CharFromData(10, 10, 10, 10, 10, 10, 10, 4, 0, 2, 2)
+	bomzh, _ = CharFromData(10, 10, 10, 10, 10, 10, 13, 12, 0, 2, 2)
 	bomzh.Name = "Керилл"
 	bomzh.Title = "бомж"
 	bomzh.Class = ""
@@ -55,12 +55,12 @@ func NewGame() *Game {
 
 	plaza.Name = Plaza
 	plaza.Host = &bomzh
-	plaza.Description = "площадь деревни скрытого листа, в луже по центру лежит бомж Керилл"
+	plaza.Description = "площадь деревни скрытого листа, в луже по центру лежит мощный бомж Керилл"
 
 	var bar Location
 	bar.Name = Bar
 	bar.Host = &barman
-	bar.Description = "бар с одним видом пива - нефильтрованная пшеничка, на заккуску только чеснок"
+	bar.Description = "бар с одним видом пива - нефильтрованная пшеничка, на заккуску только чеснок, за стойкой мощный бармен Васян"
 
 	var game Game
 	game.Party = make(map[int64](Char))

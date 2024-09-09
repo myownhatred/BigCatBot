@@ -617,6 +617,7 @@ func DnDCombatTurn(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (er
 			if target.Name == "Керилл" || target.Name == "Васян" {
 				message += "Со смертью этого персонажа комбат в этом месте заканчивается, идите в другое или живите дальше в проклятом мире, который сами и создали\n"
 				brain.Game.CombatFlag = false
+				break
 			}
 		}
 
@@ -663,6 +664,20 @@ func DnDAttack(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err er
 		message += fmt.Sprintf("%s выбрал целью %s\n", me.Name, target.Name)
 	}
 	return c.Send(message)
+}
+
+func DnDActionButtons(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
+	message := "Выберите действие\n"
+	incButtons := &tele.ReplyMarkup{ResizeKeyboard: true}
+
+	var rows []tele.Row
+	for id, item := range brain.Game.CombatOrder {
+		rows = append(rows, incButtons.Row(incButtons.Data(fmt.Sprintf("%d: %s", id+1, item.Name), fmt.Sprintf("dndAttackTarget%d", id))))
+
+	}
+	rows = append(rows, incButtons.Row(incButtons.Data("скрыть", "sweep")))
+	incButtons.Inline(rows...)
+	return c.Send(message, incButtons)
 }
 
 func CmdUserAchAdd(c tele.Context, serv *servitor.Servitor) (err error) {

@@ -99,3 +99,25 @@ func CrateArmorScaleMail() *Armor {
 
 	return &armor
 }
+
+func CreateArmorBreastplate() *Armor {
+	var armor Armor
+	armor.Name = "Кираса"
+	armor.CostGold = 400
+	armor.AC = 14
+	armor.BadStealth = false
+	armor.Weight = 20
+
+	return &armor
+}
+
+func CreateArmorHalfplate() *Armor {
+	var armor Armor
+	armor.Name = "Полулаты"
+	armor.CostGold = 750
+	armor.AC = 15
+	armor.BadStealth = true
+	armor.Weight = 40
+
+	return &armor
+}
