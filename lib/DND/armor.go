@@ -12,6 +12,18 @@ type Armor struct {
 	Weight         int
 }
 
+func CreateFakeArmor() *Armor {
+	switch rand.Intn(10) + 1 {
+	case 1:
+		return CreateArmorBadRobe()
+	case 2, 3, 4, 5, 6, 7, 8, 9:
+		return CreateArmorRobe()
+	case 10:
+		return CreateArmorNiceRobe()
+	}
+	return CreateArmorRobe()
+}
+
 func CreateLightArmor() *Armor {
 	switch rand.Intn(3) + 1 {
 	case 1:
@@ -32,6 +44,36 @@ func CreateMediumArmor() *Armor {
 		return CrateArmorChainShirt()
 	}
 	return nil
+}
+
+func CreateArmorRobe() *Armor {
+	var armor Armor
+	armor.Name = "Халат"
+	armor.CostSilver = 5
+	armor.AC = 10
+	armor.Weight = 1
+
+	return &armor
+}
+
+func CreateArmorNiceRobe() *Armor {
+	var armor Armor
+	armor.Name = "Красивый халат"
+	armor.CostSilver = 10
+	armor.AC = 10
+	armor.Weight = 1
+
+	return &armor
+}
+
+func CreateArmorBadRobe() *Armor {
+	var armor Armor
+	armor.Name = "Обоссаный халат"
+	armor.CostSilver = 1
+	armor.AC = 10
+	armor.Weight = 1
+
+	return &armor
 }
 
 func CrateArmorPadded() *Armor {

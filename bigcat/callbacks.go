@@ -4,6 +4,7 @@ import (
 	"Guenhwyvar/lib/memser"
 	"Guenhwyvar/servitor"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
@@ -46,6 +47,20 @@ func CallbackHandler(c tele.Context, serv *servitor.Servitor, brain *BigBrain) e
 			Caption: fmt.Sprintf("%s сбросил таймер\n%s", c.Callback().Sender.Username, event.Name),
 		}
 		return c.Send(m)
+	}
+	// dnd stuff
+	if strings.HasPrefix(cbUniq, "\fdndAttackTarget") {
+		serv.Logger.Info("callback attack handler",
+			slog.String("callback payload:", cbUniq))
+		args := strings.Split(cbUniq, "\fdndAttackTarget")
+		data := strings.Split(args[1], "_")
+		id, _ := strconv.Atoi(data[0])
+		chatID, _ := strconv.ParseInt(data[1], 10, 64)
+		c.Delete()
+		serv.Logger.Info("calling function to calc all sheet",
+			slog.Int("target ID:", id),
+			slog.Int64("chat ID:", chatID))
+		return DnDAttackByCallback(c, serv, brain, id, chatID)
 	}
 
 	switch cbUniq {

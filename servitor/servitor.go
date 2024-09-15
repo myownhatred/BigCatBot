@@ -66,7 +66,7 @@ type Police interface {
 }
 
 type Servitor struct {
-	logger *slog.Logger
+	Logger *slog.Logger
 	WakaStuff
 	Memser
 	AnimeMaw
@@ -81,7 +81,7 @@ type Servitor struct {
 
 func NewServitor(bringer *bringer.Bringer, logger *slog.Logger) *Servitor {
 	return &Servitor{
-		logger:       logger,
+		Logger:       logger,
 		WakaStuff:    NewWakaStuffServ(bringer.WakaStuff),
 		Memser:       NewMemserServ(bringer.Memser),
 		AnimeMaw:     NewAnimeMawServ(bringer.AnimeMaw),

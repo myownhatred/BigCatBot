@@ -192,6 +192,7 @@ func RollChar() Char {
 		chel.Hitpoints = 8 + calculateBonus(chel.Con)
 	case Wizard:
 		chel.Hitpoints = 6 + calculateBonus(chel.Con)
+		chel.Armor = CreateFakeArmor()
 	}
 
 	chel.Generation += "❤️Хиты: " + strconv.Itoa(chel.Hitpoints) + "\n"

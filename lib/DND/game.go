@@ -28,15 +28,17 @@ const (
 
 type Game struct {
 	Party           map[int64]Char
+	ActiveParty     map[int64]*Char
 	Locations       []Location
 	CurrentLocation *Location
-	CombatOrder     []Char
+	CombatOrder     []*Char
 	CombatFlag      bool
+	CombatFC        chan bool
 }
 
 func NewGame() *Game {
 	var barman Char
-	barman, _ = CharFromData(10, 10, 10, 10, 10, 10, 13, 18, 0, 2, 2)
+	barman, _ = CharFromData(10, 10, 10, 10, 10, 10, 14, 25, 0, 2, 2)
 	barman.Name = "Васян"
 	barman.Title = "бармен"
 	barman.Class = ""
@@ -60,13 +62,15 @@ func NewGame() *Game {
 	var bar Location
 	bar.Name = Bar
 	bar.Host = &barman
-	bar.Description = "бар с одним видом пива - нефильтрованная пшеничка, на заккуску только чеснок, за стойкой мощный бармен Васян"
+	bar.Description = "бар с одним видом пива - нефильтрованная пшеничка, на заккуску только чеснок, за стойкой очень мощный бармен Васян"
 
 	var game Game
 	game.Party = make(map[int64](Char))
+	game.ActiveParty = make(map[int64](*Char))
 
 	game.Locations = []Location{plaza, bar}
 	game.CurrentLocation = &plaza
+	game.CombatFC = make(chan bool)
 
 	return &game
 }
@@ -89,17 +93,18 @@ func (g *Game) Combat() string {
 		for i, c := range g.CombatOrder {
 			message += strconv.Itoa(i+1) + " - " + c.Name + " с инициативой " + strconv.Itoa(c.Initiative) + "\n"
 		}
-
 		return message
 	}
-	var order []Char
+	var order []*Char
 
 	//g.Locations[0].Host.Initiative = g.Locations[0].Host.GetInitiative()
 	g.CurrentLocation.Host.Initiative = g.CurrentLocation.Host.GetInitiative()
-	order = append(order, *g.CurrentLocation.Host)
-	for _, c := range g.Party {
-		c.Initiative = c.GetInitiative()
-		order = append(order, c)
+	order = append(order, g.CurrentLocation.Host)
+	for k := range g.ActiveParty {
+		char := g.ActiveParty[k]
+		char.Initiative = char.GetInitiative()
+		order = append(order, char)
+		g.ActiveParty[k] = char
 	}
 	sort.Sort(ByInitiative(order))
 	message := "наши байцы будут выступать в таком порядке:\n"
@@ -112,7 +117,7 @@ func (g *Game) Combat() string {
 }
 
 // sorting by initiatives
-type ByInitiative []Char
+type ByInitiative []*Char
 
 func (a ByInitiative) Len() int { return len(a) }
 func (a ByInitiative) Less(i, j int) bool {

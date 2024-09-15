@@ -81,7 +81,7 @@ func (c *BigCat) Start() {
 		c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, report)
 	})
 	c.clock.AddFunc("40 59 23 * * *", func() {
-		c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, "порядок играния в днд - ролим чаров -> /dndparty - можно выбрать бар -> /dndcombat - все кто есть в пати получат инициативу -> /dndattack - выбираете цель -> /dndturn - совершается ход -> можно поменять цель, можно спамить /dndturn")
+		c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, "порядок играния в днд - ролим чаров -> /dndjoin - вступить в комбат ЧВК редан (тока они будут драца)\n-> /dndmf - начнёца бой до победы кароч, выбор цели через приват")
 	})
 	// manul spam
 	c.clock.AddFunc("0 0 * * * *", func() {

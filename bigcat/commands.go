@@ -59,9 +59,12 @@ const (
 	// dnd stuff
 	RollChar = "/rollcharhard"
 	Party    = "/dndparty"
-	Combat   = "/dndcombat"
-	Attack   = "/dndattack"
-	Turn     = "/dndturn"
+	Combat   = "/dndcombat222"
+	Attack   = "/dndattack222"
+	Turn     = "/dndturn222"
+	DnDJoin  = "/dndjoin"
+	DnDStats = "/dndstats"
+	DnDMF    = "/dndmf"
 	// card stuff
 	Card = "/card"
 	// weather
@@ -190,6 +193,12 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 		return DnDAttack(c, serv, brain)
 	case Turn:
 		return DnDCombatTurn(c, serv, brain)
+	case DnDJoin:
+		return DnDJoinActive(c, serv, brain)
+	case DnDStats:
+		return DnDCharStats(c, brain)
+	case DnDMF:
+		return DnDCombat2(c, serv, brain)
 	case Card:
 		return GetRandomCard(c)
 	case WeatherCurrent:
@@ -588,6 +597,7 @@ func DnDCombatTurn(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (er
 						message += messagedmg
 						message += fmt.Sprintf("\nхп цели: %d - %d = %d\n", brain.Game.CombatOrder[validIndex].Hitpoints, dmg, brain.Game.CombatOrder[validIndex].Hitpoints-dmg)
 						brain.Game.CombatOrder[validIndex].Hitpoints -= dmg
+						//brain.Game.Party[c.Sender().ID] = *brain.Game.CombatOrder[validIndex]
 						if brain.Game.CombatOrder[validIndex].Hitpoints <= 0 {
 							message += "цель perished\n"
 						}
@@ -656,7 +666,7 @@ func DnDAttack(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err er
 	if target.Hitpoints <= 0 {
 		return c.Send("ваша цель метрва")
 	}
-	brain.Game.CombatOrder[meIndex].Target = &brain.Game.CombatOrder[num-1]
+	brain.Game.CombatOrder[meIndex].Target = brain.Game.CombatOrder[num-1]
 	message := ""
 	if me.Name == target.Name {
 		message += fmt.Sprintf("%s решил хуярит сам по себе (чистый термояд-дегенерат)\n", me.Name)
@@ -666,8 +676,78 @@ func DnDAttack(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err er
 	return c.Send(message)
 }
 
-func DnDActionButtons(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
+func DnDAttackFC(c tele.Context, brain *BigBrain, num int) (err error) {
+	if !brain.Game.CombatFlag {
+		return c.Send("битва не может начатться, сделайте /dndcombat")
+	}
+	if num < 0 || num > len(brain.Game.CombatOrder) {
+		return c.Send("номер залупатара вне грониц /dndcombat")
+	}
+	me := brain.Game.Party[c.Sender().ID]
+
+	// assign target in order array (cringe)
+	meIndex := 0
+	for ind, char := range brain.Game.CombatOrder {
+		if me.Name == char.Name {
+			meIndex = ind
+			break
+		}
+	}
+	if brain.Game.CombatOrder[meIndex].Hitpoints <= 0 {
+		return c.Send("вы мертвы и не можете совершать действия")
+	}
+	target := brain.Game.CombatOrder[num-1]
+	if target.Hitpoints <= 0 {
+		return c.Send("ваша цель метрва")
+	}
+	brain.Game.CombatOrder[meIndex].Target = brain.Game.CombatOrder[num-1]
+	message := ""
+	if me.Name == target.Name {
+		message += fmt.Sprintf("%s решил хуярит сам по себе (чистый термояд-дегенерат)\n", me.Name)
+	} else {
+		message += fmt.Sprintf("%s выбрал целью %s\n", me.Name, target.Name)
+	}
+	message += fmt.Sprintf("%s бьёт по %s\n", me.Name, target.Name)
+	dmg, messagedmg := me.GetAttackDamage(target.AC)
+	message += messagedmg
+	message += fmt.Sprintf("\nхп цели: %d - %d = %d\n", target.Hitpoints, dmg, target.Hitpoints-dmg)
+	target.Hitpoints -= dmg
+	if target.Hitpoints <= 0 {
+		message += "цель perished\n"
+		if target.Name == "Керилл" || target.Name == "Васян" {
+			message += "Со смертью этого персонажа комбат в этом месте заканчивается, идите в другое или живите дальше в проклятом мире, который сами и создали\n"
+			brain.Game.CombatFlag = false
+		}
+	}
+	return c.Send(message)
+}
+
+func DnDListActionButtons(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
 	message := "Выберите действие\n"
+	incButtons := &tele.ReplyMarkup{ResizeKeyboard: true}
+	var rows []tele.Row
+	rows = append(rows, incButtons.Row(incButtons.Data("Атака", "dndAttacks")))
+	rows = append(rows, incButtons.Row(incButtons.Data("Трюки", "dndCantrips")))
+	rows = append(rows, incButtons.Row(incButtons.Data("Заклинания", "dndSpells")))
+	rows = append(rows, incButtons.Row(incButtons.Data("скрыть", "sweep")))
+	incButtons.Inline(rows...)
+	return c.Send(message, incButtons)
+}
+
+func DnDAttackButtons(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
+	message := "Выберите тип атаки\n"
+	incButtons := &tele.ReplyMarkup{ResizeKeyboard: true}
+	var rows []tele.Row
+	rows = append(rows, incButtons.Row(incButtons.Data("Мили", "dndMeleeAttack")))
+	rows = append(rows, incButtons.Row(incButtons.Data("Дальняя", "dndRangeAttack")))
+	rows = append(rows, incButtons.Row(incButtons.Data("Заклинания", "dndSpells")))
+	rows = append(rows, incButtons.Row(incButtons.Data("скрыть", "sweep")))
+	incButtons.Inline(rows...)
+	return c.Send(message, incButtons)
+}
+
+func DnDTargetsButtons(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
+	message := "Выберите цель\n"
 	incButtons := &tele.ReplyMarkup{ResizeKeyboard: true}
 
 	var rows []tele.Row
