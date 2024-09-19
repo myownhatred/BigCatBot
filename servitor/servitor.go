@@ -54,6 +54,7 @@ type GetRekt interface {
 
 type MediaCreator interface {
 	MediaManulFile() (tele.File, error)
+	MediaDayOfWeekFile() (tele.File, error)
 }
 
 type Police interface {

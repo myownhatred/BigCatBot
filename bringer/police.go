@@ -29,7 +29,8 @@ func (p *PolicePostgres) UserDefaultCheck(UserID int64, username, firstname, las
 	}
 
 	if count > 0 {
-		p.logger.Info("User exist ", UserID)
+		p.logger.Info("User exist ",
+			slog.Int64("UserID:", UserID))
 		return UserID, nil
 	} else {
 		// Insert the new user

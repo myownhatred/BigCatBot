@@ -80,9 +80,9 @@ func (c *BigCat) Start() {
 		}
 		c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, report)
 	})
-	c.clock.AddFunc("40 59 23 * * *", func() {
-		c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, "порядок играния в днд - ролим чаров -> /dndjoin - вступить в комбат ЧВК редан (тока они будут драца)\n-> /dndmf - начнёца бой до победы кароч, выбор цели через приват")
-	})
+	// c.clock.AddFunc("40 59 23 * * *", func() {
+	// 	c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, "порядок играния в днд - ролим чаров -> /dndjoin - вступить в комбат ЧВК редан (тока они будут драца)\n-> /dndmf - начнёца бой до победы кароч, выбор цели через приват")
+	// })
 	// manul spam
 	c.clock.AddFunc("0 0 * * * *", func() {
 		c.logger.Info("manul spam executed")
@@ -96,15 +96,30 @@ func (c *BigCat) Start() {
 		}
 		c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, pho)
 	})
-	// steam check
-	c.clock.AddFunc("0 0 3 * * *", func() {
-		c.logger.Info("steam spam executed")
-		report, err := c.serv.GetFreeSteamGames()
+
+	// gm spam
+	c.clock.AddFunc("15 0 1 * * *", func() {
+		c.logger.Info("GM spam executed")
+		m, err := c.serv.MediaCreator.MediaDayOfWeekFile()
+		pho := &tele.Photo{
+			File:    m,
+			Caption: "ДОБРОЕ УТРО",
+		}
 		if err != nil {
 			c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, err.Error())
 		}
-		c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, report)
+		c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, pho)
 	})
+
+	// steam check
+	// c.clock.AddFunc("0 0 3 * * *", func() {
+	// 	c.logger.Info("steam spam executed")
+	// 	report, err := c.serv.GetFreeSteamGames()
+	// 	if err != nil {
+	// 		c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, err.Error())
+	// 	}
+	// 	c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, report)
+	// })
 	c.clock.Start()
 	c.tgBot.Start()
 }

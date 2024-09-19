@@ -49,6 +49,21 @@ func CallbackHandler(c tele.Context, serv *servitor.Servitor, brain *BigBrain) e
 		return c.Send(m)
 	}
 	// dnd stuff
+	if strings.HasPrefix(cbUniq, "\fdndMeleButtons") {
+		serv.Logger.Info("callback melee buttons handler",
+			slog.String("callback payload:", cbUniq))
+		args := strings.Split(cbUniq, "\fdndMeleButtons")
+		data := strings.Split(args[1], "_")
+		id, _ := strconv.ParseInt(data[0], 10, 64)
+		chatID, _ := strconv.ParseInt(data[1], 10, 64)
+		c.Delete()
+		serv.Logger.Info("calling target buttons func",
+			slog.Int64("player ID:", id),
+			slog.Int64("chat ID:", chatID))
+		mes, buttons, _ := DnDTargetsButtonsPriv(c, serv, brain, c.Chat().ID)
+		serv.Logger.Info("combat", "sending buttons to player", id)
+		return c.Send(mes, buttons)
+	}
 	if strings.HasPrefix(cbUniq, "\fdndAttackTarget") {
 		serv.Logger.Info("callback attack handler",
 			slog.String("callback payload:", cbUniq))

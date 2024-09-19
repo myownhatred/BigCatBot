@@ -2,9 +2,11 @@ package servitor
 
 import (
 	"Guenhwyvar/bringer"
+	"fmt"
 	"io/ioutil"
 	"log/slog"
 	"math/rand"
+	"os"
 	"time"
 
 	tele "gopkg.in/telebot.v3"
@@ -21,6 +23,93 @@ func NewMediaCreatorServ(twitter bringer.Twitter, rekter bringer.GetRekt, logger
 		logger: logger,
 		twit:   twitter,
 		rekt:   rekter,
+	}
+}
+
+func (mc *MediaCreatorServ) MediaDayOfWeekFile() (file tele.File, err error) {
+	mc.logger.Info("morning picture for the day")
+	fileD := tele.FromDisk("./assets/good_morning_miserable.jpg")
+	currentDay := time.Now().Weekday()
+	switch currentDay {
+	case time.Sunday:
+		mc.logger.Info("case of Sunday")
+		fileS, err := getRandomFileFromDir("./assets/Any")
+		if err != nil {
+			return fileD, err
+		}
+		mc.logger.Info("Sunday pic",
+			slog.String("filename ", fileS),
+		)
+		file = tele.FromDisk("./assets/Any/" + fileS)
+		return file, nil
+	case time.Monday:
+		mc.logger.Info("case of Monday")
+		fileS, err := getRandomFileFromDir("./assets/Monday")
+		if err != nil {
+			return fileD, err
+		}
+		mc.logger.Info("Monday pic",
+			slog.String("filename ", fileS),
+		)
+		file = tele.FromDisk("./assets/Monday/" + fileS)
+		return file, nil
+	case time.Tuesday:
+		mc.logger.Info("case of Tuesday")
+		fileS, err := getRandomFileFromDir("./assets/Tuesday")
+		if err != nil {
+			return fileD, err
+		}
+		mc.logger.Info("Tuesday pic",
+			slog.String("filename ", fileS),
+		)
+		file = tele.FromDisk("./assets/Tuesday/" + fileS)
+		return file, nil
+	case time.Wednesday:
+		mc.logger.Info("case of Wednesday")
+		fileS, err := getRandomFileFromDir("./assets/Wednesday")
+		if err != nil {
+			return fileD, err
+		}
+		mc.logger.Info("Wednesday pic",
+			slog.String("filename ", fileS),
+		)
+		file = tele.FromDisk("./assets/Wednesday/" + fileS)
+		return file, nil
+	case time.Thursday:
+		mc.logger.Info("case of Thursday")
+		fileS, err := getRandomFileFromDir("./assets/Thursday")
+		if err != nil {
+			return fileD, err
+		}
+		mc.logger.Info("Thursday pic",
+			slog.String("filename ", fileS),
+		)
+		file = tele.FromDisk("./assets/Thursday/" + fileS)
+		return file, nil
+	case time.Friday:
+		mc.logger.Info("case of Friday")
+		fileS, err := getRandomFileFromDir("./assets/Friday")
+		if err != nil {
+			return fileD, err
+		}
+		mc.logger.Info("Friday pic",
+			slog.String("filename ", fileS),
+		)
+		file = tele.FromDisk("./assets/Friday/" + fileS)
+		return file, nil
+	case time.Saturday:
+		mc.logger.Info("case of Saturday")
+		fileS, err := getRandomFileFromDir("./assets/Saturday")
+		if err != nil {
+			return fileD, err
+		}
+		mc.logger.Info("Saturday pic",
+			slog.String("filename ", fileS),
+		)
+		file = tele.FromDisk("./assets/Saturday/" + fileS)
+		return file, nil
+	default:
+		return file, nil
 	}
 }
 
@@ -74,4 +163,33 @@ func (mc *MediaCreatorServ) MediaManulFile() (file tele.File, err error) {
 		return file, nil
 	}
 
+}
+
+func getRandomFileFromDir(dirPath string) (string, error) {
+	// Read the directory and get a list of files
+	files, err := os.ReadDir(dirPath)
+	if err != nil {
+		return "", err
+	}
+
+	// Filter out non-files (directories, etc.)
+	var validFiles []os.DirEntry
+	for _, file := range files {
+		if !file.IsDir() {
+			validFiles = append(validFiles, file)
+		}
+	}
+
+	// Check if we have any valid files
+	if len(validFiles) == 0 {
+		return "", fmt.Errorf("no files found in directory: %s", dirPath)
+	}
+
+	// Seed the random number generator
+
+	// Pick a random file
+	randomIndex := rand.Intn(len(validFiles))
+	randomFile := validFiles[randomIndex]
+
+	return randomFile.Name(), nil
 }

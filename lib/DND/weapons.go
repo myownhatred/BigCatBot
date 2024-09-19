@@ -23,6 +23,7 @@ const (
 	WPLight     WeaponProperty = "лёгкое"
 	WPThrown    WeaponProperty = "метательное"
 	WPTwohanded WeaponProperty = "двуручное"
+	WPRange     WeaponProperty = "дальнее"
 )
 
 func CreateWeaponCommon() *Weapon {

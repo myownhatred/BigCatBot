@@ -11,6 +11,7 @@ type Race string
 type Class string
 type DamageType string
 type Stat string
+type ButtonMode string
 
 const (
 	Spermtank         Gender = "спермобак"
@@ -55,6 +56,11 @@ const (
 	Intellegence Stat = "интеллект"
 	Wisidom      Stat = "мудрость"
 	Charisma     Stat = "харизма"
+
+	BtnsActions     ButtonMode = "действие"
+	BtnsAttackMelee ButtonMode = "атака рукопашная"
+	BtnsAttackRange ButtonMode = "атака с лонгренджи"
+	BtnsSpellcast   ButtonMode = "заклы"
 )
 
 type Char struct {
@@ -78,6 +84,7 @@ type Char struct {
 	Target     *Char
 	IsNPC      bool
 	Generation string
+	ButtonMode ButtonMode
 }
 
 var genders = [...]Gender{Spermtank, Vaginacapitallist, Moongender, Agender, Gendervoy, Gendervoid, Nonbinary, Xenogender}
@@ -323,4 +330,13 @@ func (c *Char) DnDCharGetWeaponBonus() int {
 		}
 	}
 	return calculateBonus(c.Str)
+}
+
+func (c *Char) DnDCharIfRangedAttack() bool {
+	for _, p := range c.Weapon.WeaponProperties {
+		if p == WPThrown || p == WPRange {
+			return true
+		}
+	}
+	return false
 }

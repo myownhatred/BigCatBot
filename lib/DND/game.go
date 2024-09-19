@@ -46,7 +46,7 @@ func NewGame() *Game {
 	barman.IsNPC = true
 
 	var bomzh Char
-	bomzh, _ = CharFromData(10, 10, 10, 10, 10, 10, 13, 12, 0, 2, 2)
+	bomzh, _ = CharFromData(10, 10, 10, 10, 10, 10, 13, 1, 0, 2, 2)
 	bomzh.Name = "Керилл"
 	bomzh.Title = "бомж"
 	bomzh.Class = ""
