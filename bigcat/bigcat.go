@@ -99,6 +99,7 @@ func (c *BigCat) Start() {
 
 	// gm spam
 	c.clock.AddFunc("15 0 1 * * *", func() {
+		//c.clock.AddFunc("0 * * * * *", func() {
 		c.logger.Info("GM spam executed")
 		m, err := c.serv.MediaCreator.MediaDayOfWeekFile()
 		pho := &tele.Photo{

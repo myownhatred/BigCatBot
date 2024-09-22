@@ -52,8 +52,44 @@ func DnDCharStats(c tele.Context, brain *BigBrain) (err error) {
 	}
 }
 
+func DnDCombat(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
+	message, flag := brain.Game.CombatReadyCheck()
+	if !flag {
+		return c.Send(message)
+	}
+	message = brain.Game.CombatStart()
+	serv.Logger.Info("combat", "combat order", brain.Game.CombatOrder)
+	message += "бой начался"
+	c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, message)
+	for brain.Game.CombatFlag {
+		message, userID := brain.Game.CombatRouter()
+		// case of real user - sending buttons to private chat
+		// doing stuff by range of callback functions
+		// then putting message into game object
+		if userID != 0 {
+			message, buttons, _ := DnDTargetsButtonsPriv(c, serv, brain, c.Chat().ID)
+			serv.Logger.Info("combat", "sending buttons to player", userID)
+			privateMes, _ := c.Bot().Send(&tele.Chat{ID: userID}, message, buttons)
+			timerDuration := 25 * time.Second
+			select {
+			case <-time.After(timerDuration):
+				serv.Logger.Info("combat", "returning from buttons part by timeout", userID)
+				c.Bot().Delete(privateMes)
+				c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "текущий байец уснул и ход переходит дальше")
+			case <-brain.Game.CombatFC:
+				serv.Logger.Info("combat", "returning from buttons part", userID)
+				c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, brain.Game.CombatCBMessage)
+			}
+		} else {
+			c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, message)
+		}
+	}
+
+	return c.Send(message)
+}
+
 func DnDCombat2(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
-	// if other combat is ongoing
+	// if other combat is happening
 	if brain.Game.CombatFlag {
 		serv.Logger.Info("combat", "/dndmf start with combatflag true", c.Chat().ID)
 		serv.Logger.Info("combat", "/dmdmf called by ", c.Sender().ID)
@@ -70,7 +106,8 @@ func DnDCombat2(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err e
 		return c.Send("местные помёрли вже, нечего комбашить тута")
 	}
 	serv.Logger.Info("combat", "combat started", c.Chat().ID)
-	message := brain.Game.Combat()
+	message := brain.Game.CombatStart()
+	//combatantsCount := len(brain.Game.ActiveParty)
 	serv.Logger.Info("combat", "combat order", brain.Game.CombatOrder)
 	message += "бой начался"
 	c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, message)
@@ -161,14 +198,13 @@ func DNDButtonsRouterPriv(c tele.Context, serv *servitor.Servitor, brain *BigBra
 func DnDActionsButtonsPriv(c tele.Context, serv *servitor.Servitor, brain *BigBrain, hostchat, playerID int64) (message string, buttons *tele.ReplyMarkup, err error) {
 	message += "Выберите действие\n"
 	incButtons := &tele.ReplyMarkup{ResizeKeyboard: true}
-
+	char := brain.Game.Party[playerID]
 	var rows []tele.Row
 	rows = append(rows, incButtons.Row(incButtons.Data("Рукопашная атака", fmt.Sprintf("dndMeleButtons%d_%d", playerID, hostchat))))
-	if brain.Game.Party[playerID].Target.DnDCharIfRangedAttack() {
+	if char.DnDCharIfRangedAttack() {
 		rows = append(rows, incButtons.Row(incButtons.Data("Ренджевая атака", "dndRangeButtons")))
 	}
 	rows = append(rows, incButtons.Row(incButtons.Data("Заклы", "dndSpellsButtons")))
-
 	rows = append(rows, incButtons.Row(incButtons.Data("скрыть", "sweep")))
 	incButtons.Inline(rows...)
 	return message, incButtons, nil

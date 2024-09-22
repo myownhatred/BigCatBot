@@ -574,11 +574,6 @@ func DnDParty(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err err
 	return c.Send(message, incButtons)
 }
 
-func DnDCombat(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
-	message := brain.Game.Combat()
-	return c.Send(message)
-}
-
 func DnDCombatTurn(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
 	if !brain.Game.CombatFlag {
 		return c.Send("зачем ходить комбат если комбата и нет?")

@@ -1,10 +1,5 @@
 package dnd
 
-import (
-	"sort"
-	"strconv"
-)
-
 type Location struct {
 	Name        string
 	Description string
@@ -32,8 +27,10 @@ type Game struct {
 	Locations       []Location
 	CurrentLocation *Location
 	CombatOrder     []*Char
+	CombatIndex     int
 	CombatFlag      bool
 	CombatFC        chan bool
+	CombatCBMessage string
 }
 
 func NewGame() *Game {
@@ -85,45 +82,4 @@ func (g *Game) Lookaround() string {
 	result += "похоже тут главный " + g.CurrentLocation.Host.Title + " " + g.CurrentLocation.Host.Name
 
 	return result
-}
-
-func (g *Game) Combat() string {
-	if g.CombatFlag {
-		message := "наши байцы будут выступать в таком порядке:\n"
-		for i, c := range g.CombatOrder {
-			message += strconv.Itoa(i+1) + " - " + c.Name + " с инициативой " + strconv.Itoa(c.Initiative) + "\n"
-		}
-		return message
-	}
-	var order []*Char
-
-	//g.Locations[0].Host.Initiative = g.Locations[0].Host.GetInitiative()
-	g.CurrentLocation.Host.Initiative = g.CurrentLocation.Host.GetInitiative()
-	order = append(order, g.CurrentLocation.Host)
-	for k := range g.ActiveParty {
-		char := g.ActiveParty[k]
-		char.Initiative = char.GetInitiative()
-		order = append(order, char)
-		g.ActiveParty[k] = char
-	}
-	sort.Sort(ByInitiative(order))
-	message := "наши байцы будут выступать в таком порядке:\n"
-	for i, c := range order {
-		message += strconv.Itoa(i+1) + " - " + c.Name + " с инициативой " + strconv.Itoa(c.Initiative) + "\n"
-	}
-	g.CombatOrder = order
-	g.CombatFlag = true
-	return message
-}
-
-// sorting by initiatives
-type ByInitiative []*Char
-
-func (a ByInitiative) Len() int { return len(a) }
-func (a ByInitiative) Less(i, j int) bool {
-	// Sort by initiative in ascending order
-	return a[i].Initiative > a[j].Initiative
-}
-func (a ByInitiative) Swap(i, j int) {
-	a[i], a[j] = a[j], a[i]
 }

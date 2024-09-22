@@ -33,80 +33,80 @@ func (mc *MediaCreatorServ) MediaDayOfWeekFile() (file tele.File, err error) {
 	switch currentDay {
 	case time.Sunday:
 		mc.logger.Info("case of Sunday")
-		fileS, err := getRandomFileFromDir("./assets/Any")
+		fileS, err := getRandomFileFromDir("./assets/week/Any")
 		if err != nil {
 			return fileD, err
 		}
 		mc.logger.Info("Sunday pic",
 			slog.String("filename ", fileS),
 		)
-		file = tele.FromDisk("./assets/Any/" + fileS)
+		file = tele.FromDisk("./assets/week/Any/" + fileS)
 		return file, nil
 	case time.Monday:
 		mc.logger.Info("case of Monday")
-		fileS, err := getRandomFileFromDir("./assets/Monday")
+		fileS, err := getRandomFileFromDir("./assets/week/Monday")
 		if err != nil {
 			return fileD, err
 		}
 		mc.logger.Info("Monday pic",
 			slog.String("filename ", fileS),
 		)
-		file = tele.FromDisk("./assets/Monday/" + fileS)
+		file = tele.FromDisk("./assets/week/Monday/" + fileS)
 		return file, nil
 	case time.Tuesday:
 		mc.logger.Info("case of Tuesday")
-		fileS, err := getRandomFileFromDir("./assets/Tuesday")
+		fileS, err := getRandomFileFromDir("./assets/week/Tuesday")
 		if err != nil {
 			return fileD, err
 		}
 		mc.logger.Info("Tuesday pic",
 			slog.String("filename ", fileS),
 		)
-		file = tele.FromDisk("./assets/Tuesday/" + fileS)
+		file = tele.FromDisk("./assets/week/Tuesday/" + fileS)
 		return file, nil
 	case time.Wednesday:
 		mc.logger.Info("case of Wednesday")
-		fileS, err := getRandomFileFromDir("./assets/Wednesday")
+		fileS, err := getRandomFileFromDir("./assets/week/Wednesday")
 		if err != nil {
 			return fileD, err
 		}
 		mc.logger.Info("Wednesday pic",
 			slog.String("filename ", fileS),
 		)
-		file = tele.FromDisk("./assets/Wednesday/" + fileS)
+		file = tele.FromDisk("./assets/week/Wednesday/" + fileS)
 		return file, nil
 	case time.Thursday:
 		mc.logger.Info("case of Thursday")
-		fileS, err := getRandomFileFromDir("./assets/Thursday")
+		fileS, err := getRandomFileFromDir("./assets/week/Thursday")
 		if err != nil {
 			return fileD, err
 		}
 		mc.logger.Info("Thursday pic",
 			slog.String("filename ", fileS),
 		)
-		file = tele.FromDisk("./assets/Thursday/" + fileS)
+		file = tele.FromDisk("./assets/week/Thursday/" + fileS)
 		return file, nil
 	case time.Friday:
 		mc.logger.Info("case of Friday")
-		fileS, err := getRandomFileFromDir("./assets/Friday")
+		fileS, err := getRandomFileFromDir("./assets/week/Friday")
 		if err != nil {
 			return fileD, err
 		}
 		mc.logger.Info("Friday pic",
 			slog.String("filename ", fileS),
 		)
-		file = tele.FromDisk("./assets/Friday/" + fileS)
+		file = tele.FromDisk("./assets/week/Friday/" + fileS)
 		return file, nil
 	case time.Saturday:
 		mc.logger.Info("case of Saturday")
-		fileS, err := getRandomFileFromDir("./assets/Saturday")
+		fileS, err := getRandomFileFromDir("./assets/week/Saturday")
 		if err != nil {
 			return fileD, err
 		}
 		mc.logger.Info("Saturday pic",
 			slog.String("filename ", fileS),
 		)
-		file = tele.FromDisk("./assets/Saturday/" + fileS)
+		file = tele.FromDisk("./assets/week/Saturday/" + fileS)
 		return file, nil
 	default:
 		return file, nil
