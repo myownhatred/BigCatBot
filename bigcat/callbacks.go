@@ -1,6 +1,7 @@
 package bigcat
 
 import (
+	dnd "Guenhwyvar/lib/DND"
 	"Guenhwyvar/lib/memser"
 	"Guenhwyvar/servitor"
 	"fmt"
@@ -60,8 +61,23 @@ func CallbackHandler(c tele.Context, serv *servitor.Servitor, brain *BigBrain) e
 		serv.Logger.Info("calling target buttons func",
 			slog.Int64("player ID:", id),
 			slog.Int64("chat ID:", chatID))
-		mes, buttons, _ := DnDTargetsButtonsPriv(c, serv, brain, c.Chat().ID)
+		mes, buttons, _ := DnDTargetsButtonsPriv(c, serv, brain, chatID)
 		serv.Logger.Info("combat", "sending buttons to player", id)
+		return c.Send(mes, buttons)
+	}
+	if strings.HasPrefix(cbUniq, "\fdndSpellsButtons") {
+		serv.Logger.Info("callback spells handler",
+			slog.String("callback payload:", cbUniq))
+		args := strings.Split(cbUniq, "\fdndSpellsButtons")
+		data := strings.Split(args[1], "_")
+		id, _ := strconv.Atoi(data[0])
+		chatID, _ := strconv.ParseInt(data[1], 10, 64)
+		c.Delete()
+		serv.Logger.Info("calling function to calc all sheet",
+			slog.Int("target ID:", id),
+			slog.Int64("chat ID:", chatID))
+		mes, buttons, _ := DnDActionsSelectButtonsPriv(c, serv, brain, chatID, c.Callback().Sender.ID, dnd.SpellCast)
+		serv.Logger.Info("combat", "sending spells buttons to player", id)
 		return c.Send(mes, buttons)
 	}
 	if strings.HasPrefix(cbUniq, "\fdndAttackTarget") {
@@ -76,6 +92,21 @@ func CallbackHandler(c tele.Context, serv *servitor.Servitor, brain *BigBrain) e
 			slog.Int("target ID:", id),
 			slog.Int64("chat ID:", chatID))
 		return DnDAttackByCallback(c, serv, brain, id, chatID)
+	}
+	if strings.HasPrefix(cbUniq, "\fdndSC") {
+		serv.Logger.Info("callback spellcast handler",
+			slog.String("callback payload:", cbUniq))
+		args := strings.Split(cbUniq, "\fdndSC")
+		data := strings.Split(args[1], "_")
+		spellID, _ := strconv.Atoi(data[0])
+		chatID, _ := strconv.ParseInt(data[1], 10, 64)
+		//playerID, _ := strconv.ParseInt(data[2], 10, 64)
+		c.Delete()
+		serv.Logger.Info("calling spell target function",
+			slog.Int("spell ID:", spellID),
+			slog.Int64("chat ID:", chatID))
+		mes, buttons, _ := DnDSpellTargetsButtonsPriv(c, serv, brain, chatID, spellID)
+		return c.Send(mes, buttons)
 	}
 
 	switch cbUniq {

@@ -79,6 +79,11 @@ func (bh *BotHandler) AddHandler() {
 		return c.Send("копочка-наёбочка")
 	})
 	bh.tgbot.Handle(tele.OnPhoto, func(c tele.Context) error {
+		// content options logger
+		bh.logger.Info("HANDLER got new photo:",
+			slog.Int64("chatID:", c.Chat().ID),
+			slog.String("fileID:", c.Message().Media().MediaFile().FileID))
+		// bh.brain.ChatContent[c.Chat().ID] = c.Message().Media().
 		// Metatron checks and actions
 		// private chat only
 		if c.Message().Private() {

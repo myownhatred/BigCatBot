@@ -20,13 +20,9 @@ func (g *Game) CombatIfAllPlayersDead() bool {
 	return true
 }
 
+// TODO remake to check all NPC
 func (g *Game) CombatIfAllNPCDead() bool {
-	for _, char := range g.ActiveParty {
-		if char.Hitpoints > 0 && char.IsNPC {
-			return false
-		}
-	}
-	return true
+	return g.CurrentLocation.Host.Hitpoints <= 0
 }
 
 func (g *Game) CombatStart() string {
@@ -62,9 +58,11 @@ func (g *Game) CombatRouter() (message string, userID int64) {
 	charLink := g.CombatOrder[g.CombatIndex]
 	for userID, char := range g.ActiveParty {
 		if char.Name == charLink.Name {
+			g.CombatToNextChar()
 			return g.CombatCBMessage, userID
 		}
 	}
+	g.CombatToNextChar()
 	return g.CombatTurn(0), 0
 }
 
@@ -89,8 +87,15 @@ func (g *Game) CombatTurn(userID int64) string {
 		return message
 	}
 	// case of real motherfucker
-	// never used btw
 	return ""
+}
+
+func (g *Game) CombatToNextChar() {
+	if g.CombatIndex == len(g.CombatOrder)-1 {
+		g.CombatIndex = 0
+	} else {
+		g.CombatIndex++
+	}
 }
 
 func (g *Game) CombatPickRandomPlayer() (userID int64) {

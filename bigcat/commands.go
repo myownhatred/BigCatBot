@@ -59,7 +59,7 @@ const (
 	// dnd stuff
 	RollChar = "/rollcharhard"
 	Party    = "/dndparty"
-	Combat   = "/dndcombat222"
+	Combat   = "/dndcombat"
 	Attack   = "/dndattack222"
 	Turn     = "/dndturn222"
 	DnDJoin  = "/dndjoin"

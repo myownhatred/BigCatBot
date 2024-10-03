@@ -60,6 +60,7 @@ func DnDCombat(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err er
 	message = brain.Game.CombatStart()
 	serv.Logger.Info("combat", "combat order", brain.Game.CombatOrder)
 	message += "бой начался"
+	chatID := c.Chat().ID
 	c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, message)
 	for brain.Game.CombatFlag {
 		message, userID := brain.Game.CombatRouter()
@@ -67,7 +68,7 @@ func DnDCombat(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err er
 		// doing stuff by range of callback functions
 		// then putting message into game object
 		if userID != 0 {
-			message, buttons, _ := DnDTargetsButtonsPriv(c, serv, brain, c.Chat().ID)
+			message, buttons, _ := DNDButtonsRouterPriv(c, serv, brain, chatID, userID)
 			serv.Logger.Info("combat", "sending buttons to player", userID)
 			privateMes, _ := c.Bot().Send(&tele.Chat{ID: userID}, message, buttons)
 			timerDuration := 25 * time.Second
@@ -75,17 +76,17 @@ func DnDCombat(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err er
 			case <-time.After(timerDuration):
 				serv.Logger.Info("combat", "returning from buttons part by timeout", userID)
 				c.Bot().Delete(privateMes)
-				c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "текущий байец уснул и ход переходит дальше")
+				c.Bot().Send(&tele.Chat{ID: chatID}, "текущий байец уснул и ход переходит дальше")
 			case <-brain.Game.CombatFC:
 				serv.Logger.Info("combat", "returning from buttons part", userID)
-				c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, brain.Game.CombatCBMessage)
+				c.Bot().Send(&tele.Chat{ID: chatID}, brain.Game.CombatCBMessage)
 			}
 		} else {
-			c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, message)
+			c.Bot().Send(&tele.Chat{ID: chatID}, message)
 		}
 	}
-
-	return c.Send(message)
+	// place
+	return nil
 }
 
 func DnDCombat2(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
@@ -204,9 +205,27 @@ func DnDActionsButtonsPriv(c tele.Context, serv *servitor.Servitor, brain *BigBr
 	if char.DnDCharIfRangedAttack() {
 		rows = append(rows, incButtons.Row(incButtons.Data("Ренджевая атака", "dndRangeButtons")))
 	}
-	rows = append(rows, incButtons.Row(incButtons.Data("Заклы", "dndSpellsButtons")))
+	if len(char.Spells) > 0 {
+		rows = append(rows, incButtons.Row(incButtons.Data("Заклы", fmt.Sprintf("dndSpellsButtons%d_%d", playerID, hostchat))))
+	}
 	rows = append(rows, incButtons.Row(incButtons.Data("скрыть", "sweep")))
 	incButtons.Inline(rows...)
+	return message, incButtons, nil
+}
+
+// set of buttons to select spell/item
+func DnDActionsSelectButtonsPriv(c tele.Context, serv *servitor.Servitor, brain *BigBrain, hostchat, playerID int64, actionType dnd.ActionType) (message string, buttons *tele.ReplyMarkup, err error) {
+	incButtons := &tele.ReplyMarkup{ResizeKeyboard: true}
+	switch actionType {
+	case dnd.ActionType(dnd.SpellCast):
+		var rows []tele.Row
+		message += "Выберите спелл"
+		for i, spell := range brain.Game.ActiveParty[playerID].Spells {
+			rows = append(rows, incButtons.Row((incButtons.Data(spell.Name, fmt.Sprintf("dndSC_%d_%d_%d", i, hostchat, playerID)))))
+		}
+		incButtons.Inline(rows...)
+		return message, incButtons, nil
+	}
 	return message, incButtons, nil
 }
 
@@ -229,6 +248,146 @@ func DnDAttackByCallback(c tele.Context, serv *servitor.Servitor, brain *BigBrai
 	serv.Logger.Info("callback combat", "callback attack starts for ", chatID)
 	if !brain.Game.CombatFlag {
 		return c.Send("битва не может начатться, сделайте /dndmf")
+	}
+	if num < 0 || num > len(brain.Game.CombatOrder) {
+		return c.Send("номер залупатара вне грониц массива целей")
+	}
+	me := brain.Game.Party[c.Sender().ID]
+	serv.Logger.Info("callback combat", "player ID is ", c.Sender().ID)
+	serv.Logger.Info("callback combat", "player name is ", me.Name)
+	// assign target in order array (cringe)
+	meIndex := 0
+	for ind, char := range brain.Game.CombatOrder {
+		if me.Name == char.Name {
+			meIndex = ind
+			break
+		}
+	}
+	if brain.Game.CombatOrder[meIndex].Hitpoints <= 0 {
+		serv.Logger.Info("callback combat", "player HP is le zero, returning ", brain.Game.CombatOrder[meIndex].Hitpoints)
+		return c.Send("вы мертвы и не можете совершать действия")
+	}
+	target := brain.Game.CombatOrder[num]
+	var targetID int64 = 0
+	for k, val := range brain.Game.Party {
+		if target.Name == val.Name {
+			targetID = k
+		}
+	}
+	if target.Hitpoints <= 0 {
+		serv.Logger.Info("callback combat", "target HP is le zero, returning ", target.Hitpoints)
+		return c.Send("ваша цель метрва")
+	}
+	brain.Game.CombatOrder[meIndex].Target = brain.Game.CombatOrder[num]
+	message := ""
+	if me.Name == target.Name {
+		message += fmt.Sprintf("%s решил хуярит сам по себе (чистый термояд-дегенерат)\n", me.Name)
+	} else {
+		message += fmt.Sprintf("%s выбрал целью %s\n", me.Name, target.Name)
+	}
+	message += fmt.Sprintf("%s бьёт👊🏾 по %s\n", me.Name, target.Name)
+	dmg, messagedmg := me.GetAttackDamage(target.AC)
+	message += messagedmg
+	message += fmt.Sprintf("\nхп цели: %d - %d = %d\n", target.Hitpoints, dmg, target.Hitpoints-dmg)
+	target.Hitpoints -= dmg
+	if !target.IsNPC {
+		brain.Game.Party[targetID] = *target
+	}
+	if target.Hitpoints <= 0 {
+		message += "цель perished💀\n"
+		if target.Name == "Керилл" || target.Name == "Васян" {
+			message += "Со смертью этого персонажа комбат в этом месте заканчивается, идите в другое или живите дальше в проклятом мире, который сами и создали\n"
+			brain.Game.CombatFlag = false
+		}
+	}
+	serv.Logger.Info("callback combat", "sending message after callback call to chat ", chatID)
+	c.Bot().Send(&tele.Chat{ID: chatID}, message)
+	brain.Game.CombatFC <- true
+	return nil
+}
+
+func DnDSpellTargetsButtonsPriv(c tele.Context, serv *servitor.Servitor, brain *BigBrain, hostchat int64, spellID int) (message string, buttons *tele.ReplyMarkup, err error) {
+	message += "Выберите цель\n"
+	incButtons := &tele.ReplyMarkup{ResizeKeyboard: true}
+
+	var rows []tele.Row
+	for id, item := range brain.Game.CombatOrder {
+		rows = append(rows, incButtons.Row(incButtons.Data(fmt.Sprintf("%d: %s", id+1, item.Name), fmt.Sprintf("dndSpellTarget%d_%d_%d", id, hostchat, spellID))))
+
+	}
+	rows = append(rows, incButtons.Row(incButtons.Data("назад", "dndBackFSpells")))
+	rows = append(rows, incButtons.Row(incButtons.Data("скрыть", "sweep")))
+	incButtons.Inline(rows...)
+	return message, incButtons, nil
+}
+
+func DnDSpellByCallback(c tele.Context, serv *servitor.Servitor, brain *BigBrain, num int, chatID int64, spellID int) (err error) {
+	serv.Logger.Info("callback combat", "callback spells starts for ", chatID)
+	if !brain.Game.CombatFlag {
+		return c.Send("битва не может начатться, сделайте /dndcombat")
+	}
+	if num < 0 || num > len(brain.Game.CombatOrder) {
+		return c.Send("номер спелла вне грониц массива целей")
+	}
+	me := brain.Game.Party[c.Sender().ID]
+	serv.Logger.Info("callback combat", "player ID is ", c.Sender().ID)
+	serv.Logger.Info("callback combat", "player name is ", me.Name)
+	// assign target in order array (cringe)
+	// why check it if I can check Party?
+	meIndex := 0
+	for ind, char := range brain.Game.CombatOrder {
+		if me.Name == char.Name {
+			meIndex = ind
+			break
+		}
+	}
+	if brain.Game.CombatOrder[meIndex].Hitpoints <= 0 {
+		serv.Logger.Info("callback combat", "player HP is le zero, returning ", brain.Game.CombatOrder[meIndex].Hitpoints)
+		return c.Send("вы мертвы и не можете совершать действия")
+	}
+	target := brain.Game.CombatOrder[num]
+	var targetID int64 = 0
+	for k, val := range brain.Game.Party {
+		if target.Name == val.Name {
+			targetID = k
+		}
+	}
+	if target.Hitpoints <= 0 {
+		serv.Logger.Info("callback combat", "target HP is le zero, returning ", target.Hitpoints)
+		return c.Send("ваша цель метрва")
+	}
+	brain.Game.CombatOrder[meIndex].Target = brain.Game.CombatOrder[num]
+	message := ""
+	if me.Name == target.Name {
+		message += fmt.Sprintf("%s решил хуярит сам по себе (чистый термояд-дегенерат)\n", me.Name)
+	} else {
+		message += fmt.Sprintf("%s выбрал целью %s\n", me.Name, target.Name)
+	}
+	message += fmt.Sprintf("%s бьёт👊🏾 по %s\n", me.Name, target.Name)
+	dmg, messagedmg := me.GetAttackDamage(target.AC)
+	message += messagedmg
+	message += fmt.Sprintf("\nхп цели: %d - %d = %d\n", target.Hitpoints, dmg, target.Hitpoints-dmg)
+	target.Hitpoints -= dmg
+	if !target.IsNPC {
+		brain.Game.Party[targetID] = *target
+	}
+	if target.Hitpoints <= 0 {
+		message += "цель perished💀\n"
+		if target.Name == "Керилл" || target.Name == "Васян" {
+			message += "Со смертью этого персонажа комбат в этом месте заканчивается, идите в другое или живите дальше в проклятом мире, который сами и создали\n"
+			brain.Game.CombatFlag = false
+		}
+	}
+	serv.Logger.Info("callback combat", "sending message after callback call to chat ", chatID)
+	c.Bot().Send(&tele.Chat{ID: chatID}, message)
+	brain.Game.CombatFC <- true
+	return nil
+}
+
+func DnDActionsByCallback(c tele.Context, serv *servitor.Servitor, brain *BigBrain, num int, chatID int64, action dnd.Action) (err error) {
+	serv.Logger.Info("callback combat", "callback actions starts for ", chatID)
+	if !brain.Game.CombatFlag {
+		return c.Send("битва не может начатться, сделайте /dndcombat")
 	}
 	if num < 0 || num > len(brain.Game.CombatOrder) {
 		return c.Send("номер залупатара вне грониц массива целей")

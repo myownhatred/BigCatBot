@@ -62,7 +62,8 @@ func (c *BigCat) Start() {
 	// CRON JOBS
 	// mobilizatsya
 	c.clock.AddFunc("15 0 2 * * *", func() {
-		pik, err := memser.DaysMob()
+		//pik, err := memser.DaysMob()
+		pik, err := memser.DaysToSomething()
 		if err != nil {
 			c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, fmt.Sprintf("при созании картинки для сбросика таймер случчилась бида:%s", err.Error()))
 		}

@@ -65,6 +65,52 @@ func TextOnImg(input string) (string, error) {
 
 }
 
+func DaysToSomething() (string, error) {
+	bgImage, err := gg.LoadImage("./assets/bitemebee")
+
+	if err != nil {
+		return "", fmt.Errorf("не удалось загрузить шаблон мема блин блинский: %s", err.Error())
+	}
+
+	imgH := bgImage.Bounds().Dy()
+	imgW := bgImage.Bounds().Dx()
+
+	dc := gg.NewContext(imgW, imgH)
+	dc.DrawImage(bgImage, 0, 0)
+
+	if err := dc.LoadFontFace("./assets/Impact.ttf", 26); err != nil {
+		return "", fmt.Errorf("не удалось загрузить шрифт: %s", err.Error())
+	}
+	dc.SetRGB(0, 0, 0)
+	layout := "2006-01-02"
+	t, _ := time.Parse(layout, "2024-10-21")
+	var strings = []string{"блин блинский", "до приезда Тимура", "осталось"}
+	s := strconv.Itoa(int(time.Until(t).Hours() / 24))
+	s += " дней"
+	strings = append(strings, s)
+	n := 2 // "stroke" size
+	for dy := -n; dy <= n; dy++ {
+		for dx := -n; dx <= n; dx++ {
+			if dx*dx+dy*dy >= n*n {
+				// give it rounded corners
+				continue
+			}
+			x := 425 + float64(dx)
+			y := 70 + float64(dy)
+			for i, st := range strings {
+				dc.DrawStringAnchored(st, x, float64(y+float64(i)*1.5*26.0), 0.5, 0.5)
+			}
+		}
+	}
+	dc.SetRGB(1, 1, 1)
+	for i, st := range strings {
+		dc.DrawStringAnchored(st, 425, float64(70+float64(i)*1.5*26.0), 0.5, 0.5)
+	}
+	dc.SavePNG("daysto.png")
+	return "daysto.png", nil
+
+}
+
 func DaysMob() (string, error) {
 	bgImage, err := gg.LoadImage("./assets/mobilization.jpg")
 

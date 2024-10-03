@@ -12,6 +12,7 @@ type Class string
 type DamageType string
 type Stat string
 type ButtonMode string
+type ActionType string
 
 const (
 	Spermtank         Gender = "спермобак"
@@ -49,6 +50,7 @@ const (
 	DamageDubas  DamageType = "дубасящий"
 	DamagePierce DamageType = "колющий"
 	DamageSlash  DamageType = "режущий"
+	DamageAcid   DamageType = "кислотный"
 
 	Strenght     Stat = "сила"
 	Dexterity    Stat = "ловкость"
@@ -61,40 +63,42 @@ const (
 	BtnsAttackMelee ButtonMode = "атака рукопашная"
 	BtnsAttackRange ButtonMode = "атака с лонгренджи"
 	BtnsSpellcast   ButtonMode = "заклы"
+
+	MAttack   ActionType = "мили атака"
+	RAttack   ActionType = "ренж атака"
+	SpellCast ActionType = "колдунство"
+	ItemUse   ActionType = "вещение"
 )
 
 type Char struct {
-	Name       string
-	Title      string
-	Gender     Gender
-	Race       Race
-	Class      Class
-	Hitpoints  int
-	AC         int
-	Str        int
-	Dex        int
-	Con        int
-	Intl       int
-	Wis        int
-	Cha        int
-	Level      int
-	Initiative int
-	Weapon     *Weapon
-	Armor      *Armor
-	Target     *Char
-	IsNPC      bool
-	Generation string
-	ButtonMode ButtonMode
+	Name        string
+	Title       string
+	Gender      Gender
+	Race        Race
+	Class       Class
+	Hitpoints   int
+	AC          int
+	Str         int
+	Dex         int
+	Con         int
+	Intl        int
+	Wis         int
+	Cha         int
+	Level       int
+	Initiative  int
+	Weapon      *Weapon
+	Armor       *Armor
+	Target      *Char
+	IsNPC       bool
+	Generation  string
+	Spells      []Spell
+	CastingStat int
+	ButtonMode  ButtonMode
 }
 
 var genders = [...]Gender{Spermtank, Vaginacapitallist, Moongender, Agender, Gendervoy, Gendervoid, Nonbinary, Xenogender}
 var races = [...]Race{Dwarf, Halfling, Human, Elf, Drow, Gnome, Dragonborn, Halfelf, Halforc, Tiefling}
 var classes = [...]Class{Artificer, Barbarian, Bard, Cleric, Druid, Fighter, Monk, Paladin, Ranger, Rogue, Sorcerer, Warlock, Wizard}
-
-type Gaem struct {
-	Party []Char
-	Loc   Location
-}
 
 func RollChar() Char {
 	genders := []Gender{Spermtank, Vaginacapitallist, Moongender, Agender, Gendervoy, Gendervoid, Nonbinary, Xenogender}
@@ -169,20 +173,28 @@ func RollChar() Char {
 	switch chel.Class {
 	case Artificer:
 		chel.Hitpoints = 8 + calculateBonus(chel.Con)
+		chel.Spells = append(chel.Spells, *CreateSpellAcidSplash())
+		chel.CastingStat = chel.Intl
 	case Barbarian:
 		chel.Hitpoints = 12 + calculateBonus(chel.Con)
 	case Bard:
 		chel.Hitpoints = 8 + calculateBonus(chel.Con)
+		chel.CastingStat = chel.Cha
 	case Cleric:
 		chel.Hitpoints = 8 + calculateBonus(chel.Con)
+		chel.Spells = append(chel.Spells, *CreateSpellAcidSplash())
+		chel.CastingStat = chel.Wis
 	case Druid:
 		chel.Hitpoints = 8 + calculateBonus(chel.Con)
+		chel.Spells = append(chel.Spells, *CreateSpellAcidSplash())
+		chel.CastingStat = chel.Wis
 	case Fighter:
 		chel.Hitpoints = 10 + calculateBonus(chel.Con)
 	case Monk:
 		chel.Hitpoints = 8 + calculateBonus(chel.Con)
 	case Paladin:
 		chel.Hitpoints = 10 + calculateBonus(chel.Con)
+		chel.CastingStat = chel.Cha
 	case Ranger:
 		chel.Hitpoints = 10 + calculateBonus(chel.Con)
 		switch rand.Intn(2) + 1 {
@@ -191,21 +203,29 @@ func RollChar() Char {
 		case 2:
 			chel.Armor = CrateArmorLeather()
 		}
+		chel.CastingStat = chel.Wis
 	case Rogue:
 		chel.Hitpoints = 8 + calculateBonus(chel.Con)
 	case Sorcerer:
 		chel.Hitpoints = 6 + calculateBonus(chel.Con)
+		chel.Spells = append(chel.Spells, *CreateSpellAcidSplash())
+		chel.CastingStat = chel.Cha
 	case Warlock:
 		chel.Hitpoints = 8 + calculateBonus(chel.Con)
+		chel.Spells = append(chel.Spells, *CreateSpellAcidSplash())
+		chel.CastingStat = chel.Cha
 	case Wizard:
 		chel.Hitpoints = 6 + calculateBonus(chel.Con)
+		chel.Spells = append(chel.Spells, *CreateSpellAcidSplash())
 		chel.Armor = CreateFakeArmor()
+		chel.CastingStat = chel.Intl
 	}
 
 	chel.Generation += "❤️Хиты: " + strconv.Itoa(chel.Hitpoints) + "\n"
 	// remake AC calc to use dex limitations for med armor
 	chel.AC = chel.Armor.AC + calculateBonus(chel.Dex)
 	chel.Generation += "🛡️Армор: " + strconv.Itoa(chel.AC) + "\n"
+	chel.ButtonMode = BtnsActions
 	return chel
 }
 
@@ -259,6 +279,10 @@ func dice3of4() (val int, scrib string) {
 	}
 	scrib += " = " + strconv.Itoa(summ) + " => " + strconv.Itoa(summ-min)
 	return summ - min, scrib
+}
+
+func dice6() (val int) {
+	return rand.Intn(6) + 1
 }
 
 func dice8() (val int) {
@@ -323,6 +347,22 @@ func (c *Char) GetAttackDamage(target int) (int, string) {
 	}
 }
 
+func (c *Char) GetSpellDamage(target *Char, spellIndex int) (int, string) {
+	// hit or miss
+	// TODO take it from class table
+	masteryBonus := 2
+	savingBonus := 0
+	if c.Spells[spellIndex].SavingStat == target.SavingBonus() {
+		savingBonus += 2
+	}
+	SL := masteryBonus + calculateBonus(c.CastingStat) + 8
+	ST := dice20() + savingBonus + target.CalculateBonusByStat(c.Spells[spellIndex].SavingStat)
+	if ST > SL {
+		return dice6(), "спелл ебашит"
+	}
+	return 0, "спелл мима"
+}
+
 func (c *Char) DnDCharGetWeaponBonus() int {
 	for _, p := range c.Weapon.WeaponProperties {
 		if p == WPFencing {
@@ -339,4 +379,37 @@ func (c *Char) DnDCharIfRangedAttack() bool {
 		}
 	}
 	return false
+}
+
+func (c *Char) CalculateBonusByStat(stat Stat) int {
+	return calculateBonus(c.StatAtoi(stat))
+}
+
+func (c *Char) StatAtoi(stat Stat) int {
+	switch stat {
+	case Strenght:
+		return c.Str
+	case Dexterity:
+		return c.Dex
+	case Constitution:
+		return c.Con
+	case Intellegence:
+		return c.Intl
+	case Wisidom:
+		return c.Wis
+	case Charisma:
+		return c.Cha
+	}
+	return 0
+}
+
+// TODO return array, or make checker if given stat present in saving bonus array
+func (c *Char) SavingBonus() Stat {
+	// TODO take it from class
+	return Dexterity
+}
+
+// simple placeholder for saving throws
+func (c *Char) SavingThrow(stat Stat) int {
+	return dice20() + c.CalculateBonusByStat(stat)
 }
