@@ -29,7 +29,7 @@ type ChatRules struct {
 }
 
 type ChatContent struct {
-	LastPicture tele.Photo
+	LastPicture string
 	LastLine    string
 }
 

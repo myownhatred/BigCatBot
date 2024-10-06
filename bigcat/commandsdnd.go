@@ -58,6 +58,7 @@ func DnDCombat(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err er
 		return c.Send(message)
 	}
 	message = brain.Game.CombatStart()
+	brain.Game.CombatIndex = 0
 	serv.Logger.Info("combat", "combat order", brain.Game.CombatOrder)
 	message += "бой начался"
 	chatID := c.Chat().ID
@@ -221,7 +222,7 @@ func DnDActionsSelectButtonsPriv(c tele.Context, serv *servitor.Servitor, brain 
 		var rows []tele.Row
 		message += "Выберите спелл"
 		for i, spell := range brain.Game.ActiveParty[playerID].Spells {
-			rows = append(rows, incButtons.Row((incButtons.Data(spell.Name, fmt.Sprintf("dndSC_%d_%d_%d", i, hostchat, playerID)))))
+			rows = append(rows, incButtons.Row((incButtons.Data(spell.Name, fmt.Sprintf("dndSC%d_%d_%d", i, hostchat, playerID)))))
 		}
 		incButtons.Inline(rows...)
 		return message, incButtons, nil
@@ -324,10 +325,12 @@ func DnDSpellTargetsButtonsPriv(c tele.Context, serv *servitor.Servitor, brain *
 func DnDSpellByCallback(c tele.Context, serv *servitor.Servitor, brain *BigBrain, num int, chatID int64, spellID int) (err error) {
 	serv.Logger.Info("callback combat", "callback spells starts for ", chatID)
 	if !brain.Game.CombatFlag {
+		serv.Logger.Info("callback combat", "combat flag is false  ", brain.Game.CombatFlag)
 		return c.Send("битва не может начатться, сделайте /dndcombat")
 	}
 	if num < 0 || num > len(brain.Game.CombatOrder) {
-		return c.Send("номер спелла вне грониц массива целей")
+		serv.Logger.Info("callback combat", "target num is out of array ", num)
+		return c.Send("номер цели вне грониц массива целей")
 	}
 	me := brain.Game.Party[c.Sender().ID]
 	serv.Logger.Info("callback combat", "player ID is ", c.Sender().ID)
@@ -359,12 +362,12 @@ func DnDSpellByCallback(c tele.Context, serv *servitor.Servitor, brain *BigBrain
 	brain.Game.CombatOrder[meIndex].Target = brain.Game.CombatOrder[num]
 	message := ""
 	if me.Name == target.Name {
-		message += fmt.Sprintf("%s решил хуярит сам по себе (чистый термояд-дегенерат)\n", me.Name)
+		message += fmt.Sprintf("%s решил хуярит спелом сам по себе (чистый термояд-дегенерат)\n", me.Name)
 	} else {
-		message += fmt.Sprintf("%s выбрал целью %s\n", me.Name, target.Name)
+		message += fmt.Sprintf("%s выбрал целью спела %s\n", me.Name, target.Name)
 	}
-	message += fmt.Sprintf("%s бьёт👊🏾 по %s\n", me.Name, target.Name)
-	dmg, messagedmg := me.GetAttackDamage(target.AC)
+	message += fmt.Sprintf("%s калдует👊🏾 по %s\n", me.Name, target.Name)
+	dmg, messagedmg := me.GetSpellDamage(target, spellID)
 	message += messagedmg
 	message += fmt.Sprintf("\nхп цели: %d - %d = %d\n", target.Hitpoints, dmg, target.Hitpoints-dmg)
 	target.Hitpoints -= dmg
@@ -378,7 +381,7 @@ func DnDSpellByCallback(c tele.Context, serv *servitor.Servitor, brain *BigBrain
 			brain.Game.CombatFlag = false
 		}
 	}
-	serv.Logger.Info("callback combat", "sending message after callback call to chat ", chatID)
+	serv.Logger.Info("callback combat", "sending message after spell callback call to chat ", chatID)
 	c.Bot().Send(&tele.Chat{ID: chatID}, message)
 	brain.Game.CombatFC <- true
 	return nil
@@ -387,9 +390,11 @@ func DnDSpellByCallback(c tele.Context, serv *servitor.Servitor, brain *BigBrain
 func DnDActionsByCallback(c tele.Context, serv *servitor.Servitor, brain *BigBrain, num int, chatID int64, action dnd.Action) (err error) {
 	serv.Logger.Info("callback combat", "callback actions starts for ", chatID)
 	if !brain.Game.CombatFlag {
+		serv.Logger.Info("callback combat", "combat flag is not set ", brain.Game.CombatFlag)
 		return c.Send("битва не может начатться, сделайте /dndcombat")
 	}
 	if num < 0 || num > len(brain.Game.CombatOrder) {
+		serv.Logger.Info("callback combat", "target nuber out of combat order array borders - ", num)
 		return c.Send("номер залупатара вне грониц массива целей")
 	}
 	me := brain.Game.Party[c.Sender().ID]

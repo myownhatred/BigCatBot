@@ -93,6 +93,20 @@ func CallbackHandler(c tele.Context, serv *servitor.Servitor, brain *BigBrain) e
 			slog.Int64("chat ID:", chatID))
 		return DnDAttackByCallback(c, serv, brain, id, chatID)
 	}
+	if strings.HasPrefix(cbUniq, "\fdndSpellTarget") {
+		serv.Logger.Info("callback spell handler",
+			slog.String("callback payload:", cbUniq))
+		args := strings.Split(cbUniq, "\fdndSpellTarget")
+		data := strings.Split(args[1], "_")
+		id, _ := strconv.Atoi(data[0])
+		chatID, _ := strconv.ParseInt(data[1], 10, 64)
+		spellID, _ := strconv.Atoi(data[2])
+		c.Delete()
+		serv.Logger.Info("calling function to calc all sheet",
+			slog.Int("target ID:", id),
+			slog.Int64("chat ID:", chatID))
+		return DnDSpellByCallback(c, serv, brain, id, chatID, spellID)
+	}
 	if strings.HasPrefix(cbUniq, "\fdndSC") {
 		serv.Logger.Info("callback spellcast handler",
 			slog.String("callback payload:", cbUniq))

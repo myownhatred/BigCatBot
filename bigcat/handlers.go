@@ -80,10 +80,12 @@ func (bh *BotHandler) AddHandler() {
 	})
 	bh.tgbot.Handle(tele.OnPhoto, func(c tele.Context) error {
 		// content options logger
-		bh.logger.Info("HANDLER got new photo:",
+		bh.logger.Info("Bot got new photo:",
 			slog.Int64("chatID:", c.Chat().ID),
 			slog.String("fileID:", c.Message().Media().MediaFile().FileID))
-		// bh.brain.ChatContent[c.Chat().ID] = c.Message().Media().
+		var content ChatContent
+		content.LastLine = c.Message().Media().MediaFile().FileID
+		bh.brain.ChatContent[c.Chat().ID] = content
 		// Metatron checks and actions
 		// private chat only
 		if c.Message().Private() {
