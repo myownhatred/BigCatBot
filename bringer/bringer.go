@@ -43,6 +43,11 @@ type FreeMaw interface {
 	GetRandomMawFromDB(typ string) (maw entities.FreeMaw, err error)
 	PutFreeMawToDB(maw entities.FreeMaw) (err error)
 	FreeMawDBReport() (report string, err error)
+	FreeMawVectorTypeAdd(qtype entities.VectorType) (err error)
+	FreeMawVectorTypeByID(ID int) (qtype entities.VectorType, err error)
+	FreeMawVectorTypes() (report []entities.VectorType, err error)
+	FreeMawVectorAdd(vec entities.FreeVector) (err error)
+	FreeMawVectorGetRandomByType(typ int) (vec entities.FreeVector, err error)
 }
 
 type Comfiger interface {
@@ -103,7 +108,7 @@ func NewBringer(r *resty.Client, scrap *twitterscraper.Scraper, v *viper.Viper, 
 		Memser:      NewMemserGG(),
 		AnimeMaw:    NewAnimeMawPostgres(gormP, r),
 		TimeWithOut: NewTimeWithOutPostgres(db),
-		FreeMaw:     NewFreeMawPostgres(db),
+		FreeMaw:     NewFreeMawPostgres(db, logger),
 		Twitter:     NewTwitterScrapper(scrap),
 		GetRekt:     NewGetRect(r, v),
 		Police:      NewPolicePostgres(db, logger),

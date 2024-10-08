@@ -29,6 +29,11 @@ type FreeMaw interface {
 	GetFreeMaw(typ string) (maw entities.FreeMaw, err error)
 	PutFreeMaw(maw entities.FreeMaw) (err error)
 	GetFreeMawReport() (report string, err error)
+	FreeMawVectorTypeAdd(qtype entities.VectorType) (err error)
+	FreeMawVectorTypeByID(ID int) (qtype entities.VectorType, err error)
+	FreeMawVectorTypes() (report []entities.VectorType, err error)
+	FreeMawVectorAdd(vec entities.FreeVector) (err error)
+	FreeMawVectorGetRandomByType(typ int) (vec entities.FreeVector, err error)
 }
 
 type TimeWithOut interface {

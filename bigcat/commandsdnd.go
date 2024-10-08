@@ -366,7 +366,7 @@ func DnDSpellByCallback(c tele.Context, serv *servitor.Servitor, brain *BigBrain
 	} else {
 		message += fmt.Sprintf("%s выбрал целью спела %s\n", me.Name, target.Name)
 	}
-	message += fmt.Sprintf("%s калдует👊🏾 по %s\n", me.Name, target.Name)
+	message += fmt.Sprintf("%s калдует👊🏾 %s по %s\n", me.Name, me.Spells[spellID].Name, target.Name)
 	dmg, messagedmg := me.GetSpellDamage(target, spellID)
 	message += messagedmg
 	message += fmt.Sprintf("\nхп цели: %d - %d = %d\n", target.Hitpoints, dmg, target.Hitpoints-dmg)

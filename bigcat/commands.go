@@ -65,6 +65,11 @@ const (
 	DnDJoin  = "/dndjoin"
 	DnDStats = "/dndstats"
 	DnDMF    = "/dndmf"
+	// vector stuff
+	VectorAddNewType = "/vectoraddtype"
+	VectorGetTypes   = "/vectortypes"
+	VectorAddNew     = "/vectoraddq"
+	VectorGame       = "/vactorgame"
 	// card stuff
 	Card = "/card"
 	// weather
@@ -219,6 +224,12 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 		return CmdUserAchList(c, serv)
 	case UserAchAdd:
 		return CmdUserAchAdd(c, serv)
+	case VectorAddNewType:
+		return CmdVectorAddNewType(c, serv)
+	case VectorGetTypes:
+		return CmdVectorGetTypes(c, serv)
+	case VectorAddNew:
+		return CmdVectorAddNew(c, serv)
 	default:
 		return nil
 	}
