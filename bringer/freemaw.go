@@ -109,27 +109,38 @@ func (m *FreeMawPostgres) FreeMawVectorAdd(vec entities.FreeVector) (err error) 
 
 // get random question for s
 func (m *FreeMawPostgres) FreeMawVectorGetRandomByType(typ int) (vec entities.FreeVector, err error) {
-	row := m.db.QueryRow("SELECT id, typeid, pik_link, question_string, userid FROM questions where typeid=$1 ORDER BY random() LIMIT 1", typ)
+	row := m.db.QueryRow("SELECT id, typeid, pic_link, question_string, userid FROM question where typeid=$1 ORDER BY random() LIMIT 1", typ)
 	err = row.Scan(&vec.ID, &vec.TypeID, &vec.PicLink, &vec.Question, &vec.UserID)
 	if err != nil {
 		m.logger.Warn("bringer freemaw", "error getting random vector:", err.Error(),
 			slog.Int("Vector type ID", typ))
 		return vec, err
 	}
+	m.logger.Info("bringer freemaw - vector entrails",
+		slog.Int("Vector ID", vec.ID),
+		slog.Int("Vector type ID", vec.TypeID),
+		slog.String("Vector question", vec.Question),
+		slog.String("Vector pic link", vec.PicLink),
+		slog.Int64("Vector uid", vec.UserID),
+	)
 	rows, err := m.db.Query("SELECT id, questionid, answer_text FROM answer where questionid=$1", vec.ID)
 	if err != nil {
-		m.logger.Warn("bringer freemas", "error getting answers for question",
+		m.logger.Warn("bringer freemas error getting answers for question",
 			slog.Int("question ID:", vec.ID))
 		return vec, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var ans entities.VectorAnswer
-		err = row.Scan(&ans.ID, &ans.QuestionID, &ans.Answer)
+		err = rows.Scan(&ans.ID, &ans.QuestionID, &ans.Answer)
 		if err != nil {
+			m.logger.Warn("bringer freemas error reading rows of answeres for question",
+				slog.Int("question ID:", vec.ID),
+				slog.Int("answer ID:", ans.ID))
 			return vec, err
 		}
 		vec.Answers = append(vec.Answers, ans)
 	}
+
 	return vec, nil
 }

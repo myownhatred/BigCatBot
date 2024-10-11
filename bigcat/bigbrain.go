@@ -3,6 +3,7 @@ package bigcat
 import (
 	"Guenhwyvar/config"
 	dnd "Guenhwyvar/lib/DND"
+	freevector "Guenhwyvar/lib/vector"
 
 	tele "gopkg.in/telebot.v3"
 )
@@ -17,9 +18,12 @@ const (
 type BigBrain struct {
 	Comfig      config.AppConfig
 	UsersFlags  map[int64](UserRules)
+	ChatFlags   map[int64](ChatFlags)
 	Party       map[int64]dnd.Char
 	Game        *dnd.Game
 	ChatContent map[int64](ChatContent)
+	VectorChan  chan string
+	VectorGame  map[int64](freevector.VectorCore)
 }
 
 type ChatRules struct {
@@ -38,6 +42,10 @@ type UserRules struct {
 	MetatronFordwardFlag bool  // forwarding flag
 }
 
+type ChatFlags struct {
+	VectorGame bool
+}
+
 type Pers struct {
 	Name  string
 	Class string
@@ -51,8 +59,11 @@ func NewBigBrain() *BigBrain {
 	return &BigBrain{
 		Comfig:      config.AppConfig{},
 		UsersFlags:  make(map[int64](UserRules)),
+		ChatFlags:   make(map[int64](ChatFlags)),
 		Party:       make(map[int64](dnd.Char)),
 		ChatContent: make(map[int64](ChatContent)),
 		Game:        dnd.NewGame(),
+		VectorChan:  make(chan string),
+		VectorGame:  make(map[int64](freevector.VectorCore)),
 	}
 }

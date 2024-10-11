@@ -69,7 +69,7 @@ const (
 	VectorAddNewType = "/vectoraddtype"
 	VectorGetTypes   = "/vectortypes"
 	VectorAddNew     = "/vectoraddq"
-	VectorGame       = "/vactorgame"
+	VectorGame       = "/vectorgame"
 	// card stuff
 	Card = "/card"
 	// weather
@@ -124,6 +124,15 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 			}
 		} else {
 			logger.Info("user not found:" + strconv.FormatInt(c.Sender().ID, 10))
+		}
+	}
+	// vector check
+	if brain.ChatFlags[c.Chat().ID].VectorGame {
+		logger.Info("vector game",
+			slog.String("checking if message of this chact is really an answer, sender ", username))
+		vc := brain.VectorGame[c.Chat().ID]
+		if vc.CheckAnswer(strings.ToLower(c.Message().Text)) {
+			brain.VectorChan <- username
 		}
 	}
 	command := msgText[0]
@@ -230,6 +239,8 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 		return CmdVectorGetTypes(c, serv)
 	case VectorAddNew:
 		return CmdVectorAddNew(c, serv)
+	case VectorGame:
+		return CmdVectorGame(c, serv, brain)
 	default:
 		return nil
 	}
