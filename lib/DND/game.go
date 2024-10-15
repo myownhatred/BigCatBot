@@ -22,15 +22,16 @@ const (
 )
 
 type Game struct {
-	Party           map[int64]Char
-	ActiveParty     map[int64]*Char
-	Locations       []Location
-	CurrentLocation *Location
-	CombatOrder     []*Char
-	CombatIndex     int
-	CombatFlag      bool
-	CombatFC        chan bool
-	CombatCBMessage string
+	Party            map[int64]Char
+	ActiveParty      map[int64]*Char
+	Locations        []Location
+	CurrentLocation  *Location
+	CombatOrder      []*Char
+	CombatIndex      int
+	CombatFlag       bool
+	CombatFC         chan bool
+	CombatCBMessage  string
+	ButtonsMessageID int
 }
 
 func NewGame() *Game {

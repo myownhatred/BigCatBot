@@ -57,13 +57,20 @@ func CallbackHandler(c tele.Context, serv *servitor.Servitor, brain *BigBrain) e
 		data := strings.Split(args[1], "_")
 		id, _ := strconv.ParseInt(data[0], 10, 64)
 		chatID, _ := strconv.ParseInt(data[1], 10, 64)
+		userID := c.Sender().ID
 		c.Delete()
 		serv.Logger.Info("calling target buttons func",
 			slog.Int64("player ID:", id),
 			slog.Int64("chat ID:", chatID))
 		mes, buttons, _ := DnDTargetsButtonsPriv(c, serv, brain, chatID)
 		serv.Logger.Info("combat", "sending buttons to player", id)
-		return c.Send(mes, buttons)
+		privateMes, err := c.Bot().Send(&tele.Chat{ID: userID}, mes, buttons)
+		brain.Game.ButtonsMessageID = privateMes.ID
+		if err != nil {
+			return err
+		} else {
+			return nil
+		}
 	}
 	if strings.HasPrefix(cbUniq, "\fdndSpellsButtons") {
 		serv.Logger.Info("callback spells handler",
@@ -72,13 +79,20 @@ func CallbackHandler(c tele.Context, serv *servitor.Servitor, brain *BigBrain) e
 		data := strings.Split(args[1], "_")
 		id, _ := strconv.Atoi(data[0])
 		chatID, _ := strconv.ParseInt(data[1], 10, 64)
+		userID := c.Sender().ID
 		c.Delete()
 		serv.Logger.Info("calling function to calc all sheet",
 			slog.Int("target ID:", id),
 			slog.Int64("chat ID:", chatID))
 		mes, buttons, _ := DnDActionsSelectButtonsPriv(c, serv, brain, chatID, c.Callback().Sender.ID, dnd.SpellCast)
 		serv.Logger.Info("combat", "sending spells buttons to player", id)
-		return c.Send(mes, buttons)
+		privateMes, err := c.Bot().Send(&tele.Chat{ID: userID}, mes, buttons)
+		brain.Game.ButtonsMessageID = privateMes.ID
+		if err != nil {
+			return err
+		} else {
+			return nil
+		}
 	}
 	if strings.HasPrefix(cbUniq, "\fdndAttackTarget") {
 		serv.Logger.Info("callback attack handler",
@@ -91,6 +105,7 @@ func CallbackHandler(c tele.Context, serv *servitor.Servitor, brain *BigBrain) e
 		serv.Logger.Info("calling function to calc all sheet",
 			slog.Int("target ID:", id),
 			slog.Int64("chat ID:", chatID))
+
 		return DnDAttackByCallback(c, serv, brain, id, chatID)
 	}
 	if strings.HasPrefix(cbUniq, "\fdndSpellTarget") {
@@ -114,13 +129,22 @@ func CallbackHandler(c tele.Context, serv *servitor.Servitor, brain *BigBrain) e
 		data := strings.Split(args[1], "_")
 		spellID, _ := strconv.Atoi(data[0])
 		chatID, _ := strconv.ParseInt(data[1], 10, 64)
+		mID := c.Message().ID
+		userID := c.Sender().ID
 		//playerID, _ := strconv.ParseInt(data[2], 10, 64)
 		c.Delete()
 		serv.Logger.Info("calling spell target function",
 			slog.Int("spell ID:", spellID),
-			slog.Int64("chat ID:", chatID))
+			slog.Int64("chat ID:", chatID),
+			slog.Int("message ID:", mID))
 		mes, buttons, _ := DnDSpellTargetsButtonsPriv(c, serv, brain, chatID, spellID)
-		return c.Send(mes, buttons)
+		privateMes, err := c.Bot().Send(&tele.Chat{ID: userID}, mes, buttons)
+		brain.Game.ButtonsMessageID = privateMes.ID
+		if err != nil {
+			return err
+		} else {
+			return nil
+		}
 	}
 
 	switch cbUniq {

@@ -84,6 +84,10 @@ func (g *Game) CombatTurn(userID int64) string {
 		}
 		// "save" target after attack
 		g.ActiveParty[targetID] = targetChar
+		if g.CombatIfAllPlayersDead() {
+			message += "все игроки мертвы, gamover"
+			g.CombatFlag = false
+		}
 		return message
 	}
 	// case of real motherfucker

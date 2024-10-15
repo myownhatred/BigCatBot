@@ -40,7 +40,7 @@ func main() {
 	//	"executing database query",
 	//	slog.String("query", "SELECT * FROM users"),
 	//)
-	logger.Info("aux init started", slog.String("version", "0.1.4"))
+	logger.Info("aux init started", slog.String("version", "0.1.15"))
 
 	scrap := twitterscraper.New()
 	scrap.WithDelay(5)

@@ -71,29 +71,30 @@ const (
 )
 
 type Char struct {
-	Name        string
-	Title       string
-	Gender      Gender
-	Race        Race
-	Class       Class
-	Hitpoints   int
-	AC          int
-	Str         int
-	Dex         int
-	Con         int
-	Intl        int
-	Wis         int
-	Cha         int
-	Level       int
-	Initiative  int
-	Weapon      *Weapon
-	Armor       *Armor
-	Target      *Char
-	IsNPC       bool
-	Generation  string
-	Spells      []Spell
-	CastingStat int
-	ButtonMode  ButtonMode
+	Name            string
+	Title           string
+	Gender          Gender
+	Race            Race
+	Class           Class
+	Hitpoints       int
+	AC              int
+	Str             int
+	Dex             int
+	Con             int
+	Intl            int
+	Wis             int
+	Cha             int
+	Level           int
+	Initiative      int
+	Weapon          *Weapon
+	Armor           *Armor
+	Target          *Char
+	IsNPC           bool
+	Generation      string
+	Spells          []Spell
+	CastingStat     int
+	ButtonMode      ButtonMode
+	ButtonMessageID int
 }
 
 var genders = [...]Gender{Spermtank, Vaginacapitallist, Moongender, Agender, Gendervoy, Gendervoid, Nonbinary, Xenogender}

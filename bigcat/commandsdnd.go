@@ -57,29 +57,34 @@ func DnDCombat(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err er
 	if !flag {
 		return c.Send(message)
 	}
+	// get combat order
 	message = brain.Game.CombatStart()
+	// reseting from previous combat
 	brain.Game.CombatIndex = 0
 	serv.Logger.Info("combat", "combat order", brain.Game.CombatOrder)
 	message += "бой начался"
 	chatID := c.Chat().ID
 	c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, message)
 	for brain.Game.CombatFlag {
+		// returns message and userID to play along
+		// message is result of NPC turn
 		message, userID := brain.Game.CombatRouter()
 		// case of real user - sending buttons to private chat
 		// doing stuff by range of callback functions
 		// then putting message into game object
 		if userID != 0 {
 			message, buttons, _ := DNDButtonsRouterPriv(c, serv, brain, chatID, userID)
-			serv.Logger.Info("combat", "sending buttons to player", userID)
+			serv.Logger.Info("bigcat", "combat DnDCombat sending routed buttons to player", userID)
 			privateMes, _ := c.Bot().Send(&tele.Chat{ID: userID}, message, buttons)
+			brain.Game.ButtonsMessageID = privateMes.ID
 			timerDuration := 25 * time.Second
 			select {
 			case <-time.After(timerDuration):
-				serv.Logger.Info("combat", "returning from buttons part by timeout", userID)
-				c.Bot().Delete(privateMes)
+				serv.Logger.Info("bigcat", "combat DnDCombat returning from buttons part by timeout", userID)
+				c.Bot().Delete(&tele.Message{ID: brain.Game.ButtonsMessageID, Chat: &tele.Chat{ID: userID}})
 				c.Bot().Send(&tele.Chat{ID: chatID}, "текущий байец уснул и ход переходит дальше")
 			case <-brain.Game.CombatFC:
-				serv.Logger.Info("combat", "returning from buttons part", userID)
+				serv.Logger.Info("bigcat", "combat DnDCombat returning from buttons part", userID)
 				c.Bot().Send(&tele.Chat{ID: chatID}, brain.Game.CombatCBMessage)
 			}
 		} else {
@@ -187,7 +192,7 @@ func DnDCombat2(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err e
 }
 
 func DNDButtonsRouterPriv(c tele.Context, serv *servitor.Servitor, brain *BigBrain, hostchat, playerID int64) (message string, buttons *tele.ReplyMarkup, err error) {
-	serv.Logger.Info("combat", "routing buttons for player", playerID)
+	serv.Logger.Info("bigcat", "combat DNDButtonsRouterPriv - routing buttons for player", playerID)
 	switch brain.Game.Party[playerID].ButtonMode {
 	case dnd.BtnsActions:
 		return DnDActionsButtonsPriv(c, serv, brain, hostchat, playerID)
@@ -198,14 +203,16 @@ func DNDButtonsRouterPriv(c tele.Context, serv *servitor.Servitor, brain *BigBra
 }
 
 func DnDActionsButtonsPriv(c tele.Context, serv *servitor.Servitor, brain *BigBrain, hostchat, playerID int64) (message string, buttons *tele.ReplyMarkup, err error) {
+	serv.Logger.Info("bigcat", "combat DnDActionsButtonsPriv - action pick buttons for player", playerID)
 	message += "Выберите действие\n"
 	incButtons := &tele.ReplyMarkup{ResizeKeyboard: true}
 	char := brain.Game.Party[playerID]
 	var rows []tele.Row
 	rows = append(rows, incButtons.Row(incButtons.Data("Рукопашная атака", fmt.Sprintf("dndMeleButtons%d_%d", playerID, hostchat))))
-	if char.DnDCharIfRangedAttack() {
-		rows = append(rows, incButtons.Row(incButtons.Data("Ренджевая атака", "dndRangeButtons")))
-	}
+	//if char.DnDCharIfRangedAttack() {
+	// TODO add ranged buttons row here
+	//rows = append(rows, incButtons.Row(incButtons.Data("Ренджевая атака", "dndRangeButtons")))
+	//}
 	if len(char.Spells) > 0 {
 		rows = append(rows, incButtons.Row(incButtons.Data("Заклы", fmt.Sprintf("dndSpellsButtons%d_%d", playerID, hostchat))))
 	}
@@ -216,6 +223,7 @@ func DnDActionsButtonsPriv(c tele.Context, serv *servitor.Servitor, brain *BigBr
 
 // set of buttons to select spell/item
 func DnDActionsSelectButtonsPriv(c tele.Context, serv *servitor.Servitor, brain *BigBrain, hostchat, playerID int64, actionType dnd.ActionType) (message string, buttons *tele.ReplyMarkup, err error) {
+	serv.Logger.Info("bigcat", "combat DnDActionsSelectButtonsPriv - spell/item pick buttons for player", playerID)
 	incButtons := &tele.ReplyMarkup{ResizeKeyboard: true}
 	switch actionType {
 	case dnd.ActionType(dnd.SpellCast):
@@ -230,6 +238,7 @@ func DnDActionsSelectButtonsPriv(c tele.Context, serv *servitor.Servitor, brain 
 	return message, incButtons, nil
 }
 
+// set of buttons to select target for attack
 func DnDTargetsButtonsPriv(c tele.Context, serv *servitor.Servitor, brain *BigBrain, hostchat int64) (message string, buttons *tele.ReplyMarkup, err error) {
 	message += "Выберите цель\n"
 	incButtons := &tele.ReplyMarkup{ResizeKeyboard: true}
@@ -449,4 +458,8 @@ func DnDActionsByCallback(c tele.Context, serv *servitor.Servitor, brain *BigBra
 	c.Bot().Send(&tele.Chat{ID: chatID}, message)
 	brain.Game.CombatFC <- true
 	return nil
+}
+
+func saveMessageID(c tele.Context, g *dnd.Game) {
+	g.ButtonsMessageID = c.Message().ID
 }

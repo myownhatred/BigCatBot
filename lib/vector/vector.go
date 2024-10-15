@@ -7,10 +7,14 @@ import (
 
 type VectorCore struct {
 	CurrentQuestion entities.FreeVector
+	CommChan        chan string
 }
 
 func NewVectorCore() (vc *VectorCore) {
-	return &VectorCore{}
+	return &VectorCore{
+		CurrentQuestion: entities.FreeVector{},
+		CommChan:        make(chan string),
+	}
 }
 
 func (vc *VectorCore) CheckAnswer(t string) (result bool) {
