@@ -60,6 +60,7 @@ type GetRekt interface {
 type MediaCreator interface {
 	MediaManulFile() (tele.File, error)
 	MediaDayOfWeekFile() (tele.File, error)
+	RandomFileFromDir(dirPath string) (string, error)
 }
 
 type Police interface {

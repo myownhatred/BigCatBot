@@ -3,6 +3,7 @@ package bigcat
 import (
 	"Guenhwyvar/config"
 	dnd "Guenhwyvar/lib/DND"
+	"Guenhwyvar/lib/citizen"
 	freevector "Guenhwyvar/lib/vector"
 
 	tele "gopkg.in/telebot.v3"
@@ -19,6 +20,7 @@ type BigBrain struct {
 	Comfig      config.AppConfig
 	UsersFlags  map[int64](UserRules)
 	ChatFlags   map[int64](ChatFlags)
+	UsersCache  map[int64](citizen.Citizen)
 	Party       map[int64]dnd.Char
 	Game        *dnd.Game
 	ChatContent map[int64](ChatContent)
@@ -60,10 +62,21 @@ func NewBigBrain() *BigBrain {
 		Comfig:      config.AppConfig{},
 		UsersFlags:  make(map[int64](UserRules)),
 		ChatFlags:   make(map[int64](ChatFlags)),
+		UsersCache:  make(map[int64](citizen.Citizen)),
 		Party:       make(map[int64](dnd.Char)),
 		ChatContent: make(map[int64](ChatContent)),
 		Game:        dnd.NewGame(),
 		VectorChan:  make(chan string),
 		VectorGame:  make(map[int64](freevector.VectorCore)),
+	}
+}
+
+// check if we tracking this user
+func (b *BigBrain) CheckCitizen(userID int64) bool {
+	_, ok := b.UsersCache[userID]
+	if ok {
+		return true
+	} else {
+		return false
 	}
 }

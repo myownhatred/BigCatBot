@@ -26,6 +26,12 @@ const (
 func CallbackHandler(c tele.Context, serv *servitor.Servitor, brain *BigBrain) error {
 	cbUniq := c.Callback().Data
 
+	// pick
+
+	if strings.HasPrefix(cbUniq, "\fpik") {
+		return CallbackPikRouter(c, serv, brain)
+	}
+
 	// two block
 	if strings.HasPrefix(cbUniq, "\ftwo") {
 		args := strings.Split(cbUniq, "\ftwo")

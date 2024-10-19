@@ -86,6 +86,9 @@ const (
 	UserAchList = "/achlist"
 	UserAchAdd  = "/achtest"
 	UserAchAdd2 = "/achtesttwo"
+	// piks commands
+	GetPikMenu = "/pik"
+	GetTestPik = "/piktest"
 )
 
 func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain *BigBrain, comfig *config.AppConfig, logger *slog.Logger) error {
@@ -241,6 +244,10 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 		return CmdVectorAddNew(c, serv)
 	case VectorGame:
 		return CmdVectorGame(c, serv, brain)
+	case GetPikMenu:
+		return CmdPikMenuMain(c)
+	case GetTestPik:
+		return CmdPikWeekTest(c, serv, brain)
 	default:
 		return nil
 	}
@@ -830,6 +837,12 @@ func DnDRollChar(c tele.Context, serv *servitor.Servitor, brain *BigBrain) error
 	message2 := c.Message().Sender.Username + " твой перец(а/я/мы):\n"
 	message2 += chel.Generation
 	message2 += "Вооружон " + string(chel.Weapon.Name) + "\n"
+	if chel.WeaponOffhand != nil {
+		message2 += "Во второй руке " + string(chel.WeaponOffhand.Name) + "\n"
+	}
+	if chel.WeaponRanged != nil {
+		message2 += "Дальнобойная волына " + string(chel.WeaponRanged.Name) + "\n"
+	}
 	message2 += "Адет " + string(chel.Armor.Name) + "\n"
 
 	if ach == "" {

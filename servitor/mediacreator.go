@@ -26,6 +26,7 @@ func NewMediaCreatorServ(twitter bringer.Twitter, rekter bringer.GetRekt, logger
 	}
 }
 
+// TODO move file operations to bringer
 func (mc *MediaCreatorServ) MediaDayOfWeekFile() (file tele.File, err error) {
 	mc.logger.Info("morning picture for the day")
 	fileD := tele.FromDisk("./assets/good_morning_miserable.jpg")
@@ -166,6 +167,35 @@ func (mc *MediaCreatorServ) MediaManulFile() (file tele.File, err error) {
 }
 
 func getRandomFileFromDir(dirPath string) (string, error) {
+	// Read the directory and get a list of files
+	files, err := os.ReadDir(dirPath)
+	if err != nil {
+		return "", err
+	}
+
+	// Filter out non-files (directories, etc.)
+	var validFiles []os.DirEntry
+	for _, file := range files {
+		if !file.IsDir() {
+			validFiles = append(validFiles, file)
+		}
+	}
+
+	// Check if we have any valid files
+	if len(validFiles) == 0 {
+		return "", fmt.Errorf("no files found in directory: %s", dirPath)
+	}
+
+	// Seed the random number generator
+
+	// Pick a random file
+	randomIndex := rand.Intn(len(validFiles))
+	randomFile := validFiles[randomIndex]
+
+	return randomFile.Name(), nil
+}
+
+func (mc *MediaCreatorServ) RandomFileFromDir(dirPath string) (string, error) {
 	// Read the directory and get a list of files
 	files, err := os.ReadDir(dirPath)
 	if err != nil {

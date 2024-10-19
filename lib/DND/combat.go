@@ -57,6 +57,10 @@ func (g *Game) CombatStart() string {
 func (g *Game) CombatRouter() (message string, userID int64) {
 	charLink := g.CombatOrder[g.CombatIndex]
 	for userID, char := range g.ActiveParty {
+		if char.Hitpoints <= 0 {
+			// TODO add stabilization rolls
+			continue
+		}
 		if char.Name == charLink.Name {
 			g.CombatToNextChar()
 			return g.CombatCBMessage, userID

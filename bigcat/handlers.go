@@ -84,7 +84,7 @@ func (bh *BotHandler) AddHandler() {
 			slog.Int64("chatID:", c.Chat().ID),
 			slog.String("fileID:", c.Message().Media().MediaFile().FileID))
 		var content ChatContent
-		content.LastLine = c.Message().Media().MediaFile().FileID
+		content.LastPicture = c.Message().Media().MediaFile().FileID
 		bh.brain.ChatContent[c.Chat().ID] = content
 		// Metatron checks and actions
 		// private chat only
@@ -121,21 +121,21 @@ func (bh *BotHandler) AddHandler() {
 		}
 		return nil
 	})
-	bh.tgbot.Handle(tele.OnDocument, func(c tele.Context) error {
-		//TODO: rewrite for good
-		if !bh.flags.AnimeOpeningsUploadFlag {
-			return nil
-		}
-		bh.flags.AnimeOpeningsUploadFlag = false
-		size := c.Message().Document.FileSize
-		user := c.Message().Sender.Username
-		fileTele := &c.Message().Document.File
-		msg := fmt.Sprintf("о ти (%s) прислал файлек и он весет %d байд!\nflag to opening is :%v\n", user, size, bh.flags.AnimeOpeningsUploadFlag)
-		//_ c.Send(msg)
-		_ = bh.tgbot.Download(fileTele, "openingsfile.csv")
-		report, _ := bh.serv.UploadOpenings("openingsfile.csv")
-		msg += report
-		return c.Send(msg)
-	})
+	// bh.tgbot.Handle(tele.OnDocument, func(c tele.Context) error {
+	// 	//TODO: rewrite for good
+	// 	if !bh.flags.AnimeOpeningsUploadFlag {
+	// 		return nil
+	// 	}
+	// 	bh.flags.AnimeOpeningsUploadFlag = false
+	// 	size := c.Message().Document.FileSize
+	// 	user := c.Message().Sender.Username
+	// 	fileTele := &c.Message().Document.File
+	// 	msg := fmt.Sprintf("о ти (%s) прислал файлек и он весет %d байд!\nflag to opening is :%v\n", user, size, bh.flags.AnimeOpeningsUploadFlag)
+	// 	//_ c.Send(msg)
+	// 	_ = bh.tgbot.Download(fileTele, "openingsfile.csv")
+	// 	report, _ := bh.serv.UploadOpenings("openingsfile.csv")
+	// 	msg += report
+	// 	return c.Send(msg)
+	// })
 
 }

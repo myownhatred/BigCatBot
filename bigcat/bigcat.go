@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	cron "github.com/robfig/cron/v3"
 	tele "gopkg.in/telebot.v3"
@@ -103,14 +104,24 @@ func (c *BigCat) Start() {
 		//c.clock.AddFunc("0 * * * * *", func() {
 		c.logger.Info("GM spam executed")
 		m, err := c.serv.MediaCreator.MediaDayOfWeekFile()
-		pho := &tele.Photo{
-			File:    m,
-			Caption: "ДОБРОЕ УТРО",
-		}
 		if err != nil {
 			c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, err.Error())
 		}
-		c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, pho)
+		if strings.HasSuffix(m.FileLocal, ".mp4") {
+			gif := &tele.Animation{
+				File:     m,
+				FileName: m.FileLocal,
+				Caption:  "test gifky",
+			}
+
+			c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, gif)
+		} else {
+			pho := &tele.Photo{
+				File:    m,
+				Caption: "ДОБРОЕ УТРО",
+			}
+			c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, pho)
+		}
 	})
 
 	// steam check

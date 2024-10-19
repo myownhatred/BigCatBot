@@ -12,6 +12,8 @@ type Weapon struct {
 	Weight           int
 	DamageRolls      int
 	DamageDice       int
+	VersRolls        int
+	VersDice         int
 	WeaponProperties []WeaponProperty
 }
 
@@ -24,6 +26,7 @@ const (
 	WPThrown    WeaponProperty = "метательное"
 	WPTwohanded WeaponProperty = "двуручное"
 	WPRange     WeaponProperty = "дальнее"
+	WPAmmo      WeaponProperty = "боеприпас"
 )
 
 func CreateWeaponCommon() *Weapon {
@@ -157,6 +160,53 @@ func CreateWeaponGreatclub() *Weapon {
 	greatclub.WeaponProperties = []WeaponProperty{WPTwohanded}
 
 	return &greatclub
+}
+
+// Martial Melee Weapons
+
+func CreateBattleaxe() *Weapon {
+	var w Weapon
+	w.Name = "Боевой топор"
+	w.CostGold = 10
+	w.DamType = DamageSlash
+	w.DamageRolls = 1
+	w.DamageDice = 8
+	w.VersRolls = 1
+	w.VersDice = 10
+	w.Weight = 4
+	w.WeaponProperties = []WeaponProperty{WPVersatile}
+
+	return &w
+}
+
+func CreateShortSword() *Weapon {
+	var w Weapon
+	w.Name = "Короткий меч"
+	w.CostGold = 10
+	w.DamType = DamageSlash
+	w.DamageRolls = 1
+	w.DamageDice = 6
+	w.Weight = 2
+	w.WeaponProperties = []WeaponProperty{WPLight, WPFencing}
+
+	return &w
+}
+
+// ranged martial weapons
+
+func CreateWeaponLongbow() *Weapon {
+	var w Weapon
+	w.Name = "Длинный лук"
+	w.CostGold = 50
+	w.DamType = DamagePierce
+	w.Range = 150
+	w.LongRange = 600
+	w.DamageRolls = 1
+	w.DamageDice = 8
+	w.Weight = 2
+	w.WeaponProperties = []WeaponProperty{}
+
+	return &w
 }
 
 func (w *Weapon) ifFencing() bool {

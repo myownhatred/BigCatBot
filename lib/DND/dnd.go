@@ -77,6 +77,7 @@ type Char struct {
 	Race            Race
 	Class           Class
 	Hitpoints       int
+	MaxHitpoints    int
 	AC              int
 	Str             int
 	Dex             int
@@ -86,7 +87,10 @@ type Char struct {
 	Cha             int
 	Level           int
 	Initiative      int
+	Stabilization   int
 	Weapon          *Weapon
+	WeaponOffhand   *Weapon
+	WeaponRanged    *Weapon
 	Armor           *Armor
 	Target          *Char
 	IsNPC           bool
@@ -205,6 +209,9 @@ func RollChar() Char {
 			chel.Armor = CrateArmorLeather()
 		}
 		chel.CastingStat = chel.Wis
+		chel.Weapon = CreateShortSword()
+		chel.WeaponOffhand = CreateShortSword()
+		chel.WeaponRanged = CreateWeaponLongbow()
 	case Rogue:
 		chel.Hitpoints = 8 + calculateBonus(chel.Con)
 	case Sorcerer:
