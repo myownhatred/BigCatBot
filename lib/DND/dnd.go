@@ -51,6 +51,7 @@ const (
 	DamagePierce DamageType = "колющий"
 	DamageSlash  DamageType = "режущий"
 	DamageAcid   DamageType = "кислотный"
+	DamageRadian DamageType = "светящийся"
 
 	Strenght     Stat = "сила"
 	Dexterity    Stat = "ловкость"
@@ -91,6 +92,7 @@ type Char struct {
 	Weapon          *Weapon
 	WeaponOffhand   *Weapon
 	WeaponRanged    *Weapon
+	Shield          *Armor
 	Armor           *Armor
 	Target          *Char
 	IsNPC           bool
@@ -187,8 +189,8 @@ func RollChar() Char {
 		chel.CastingStat = chel.Cha
 	case Cleric:
 		chel.Hitpoints = 8 + calculateBonus(chel.Con)
-		chel.Spells = append(chel.Spells, *CreateSpellAcidSplash())
 		chel.CastingStat = chel.Wis
+		NewCleric(&chel)
 	case Druid:
 		chel.Hitpoints = 8 + calculateBonus(chel.Con)
 		chel.Spells = append(chel.Spells, *CreateSpellAcidSplash())
@@ -230,8 +232,14 @@ func RollChar() Char {
 	}
 
 	chel.Generation += "❤️Хиты: " + strconv.Itoa(chel.Hitpoints) + "\n"
-	// remake AC calc to use dex limitations for med armor
-	chel.AC = chel.Armor.AC + calculateBonus(chel.Dex)
+	// TODO remake AC calc to use dex limitations for med armor
+	BonusAC := 0
+	if chel.WeaponOffhand != nil {
+		if chel.WeaponOffhand.Name == "Шыт" {
+			BonusAC = 2
+		}
+	}
+	chel.AC = chel.Armor.AC + calculateBonus(chel.Dex) + BonusAC
 	chel.Generation += "🛡️Армор: " + strconv.Itoa(chel.AC) + "\n"
 	chel.ButtonMode = BtnsActions
 	return chel

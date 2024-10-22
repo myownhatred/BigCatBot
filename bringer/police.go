@@ -260,3 +260,12 @@ func (p *PolicePostgres) UserAchAdd(UserID int64, AID int, chat string, chatID i
 		return UAID, nil
 	}
 }
+
+func (p *PolicePostgres) UserByUsername(username string) (UID int64, err error) {
+	err = p.db.QueryRow("SELECT id FROM users WHERE Username = $1", username).Scan(&UID)
+	if err != nil {
+		p.logger.Warn(err.Error())
+		return 0, err
+	}
+	return UID, nil
+}

@@ -41,3 +41,7 @@ func (p *PoliceServ) UserAchs(UserID int64) (IDs []int, UserIDs []int64, AchIDs 
 func (p *PoliceServ) UserAchAdd(UserID int64, AID int, chat string, chatID int64) (UAID int, err error) {
 	return p.pol.UserAchAdd(UserID, AID, chat, chatID)
 }
+
+func (p *PoliceServ) UserByUsername(username string) (UID int64, err error) {
+	return p.pol.UserByUsername(username)
+}

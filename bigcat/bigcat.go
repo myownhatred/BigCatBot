@@ -111,16 +111,17 @@ func (c *BigCat) Start() {
 			gif := &tele.Animation{
 				File:     m,
 				FileName: m.FileLocal,
-				Caption:  "test gifky",
+				Caption:  "ДОБРОЕ УТРО",
 			}
-
 			c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, gif)
+			c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.JonChat}, gif)
 		} else {
 			pho := &tele.Photo{
 				File:    m,
 				Caption: "ДОБРОЕ УТРО",
 			}
 			c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, pho)
+			c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.JonChat}, pho)
 		}
 	})
 

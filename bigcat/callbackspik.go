@@ -21,14 +21,14 @@ func CallbackPikRouter(c tele.Context, serv *servitor.Servitor, brain *BigBrain)
 	case "WeekMenu":
 		if brain.ChatContent[c.Chat().ID].LastPicture != "" {
 			c.Delete()
-			return c.Send(brain.ChatContent[c.Chat().ID].LastPicture)
+			return CmdPikMenuWeek(c, serv, brain)
 		}
 		c.Delete()
-		return CmdPikMenuWeek(c, serv, brain)
+		return c.Send("дайте картиночку в чятик")
 	case "Week":
-		if brain.ChatContent[c.Chat().ID].LastPicture != "" {
+		if brain.ChatContent[c.Chat().ID].LastPicture == "" {
 			c.Delete()
-			return c.Send(brain.ChatContent[c.Chat().ID].LastPicture)
+			return c.Send("дайте картиночку в чятик")
 		}
 		switch args[1] {
 		case "Monday":

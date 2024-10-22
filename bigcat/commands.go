@@ -510,6 +510,26 @@ func CmdMetatronChatSend(c tele.Context, serv *servitor.Servitor, username strin
 		return c.Send("введите номер чатика из списька а потом сообщеньку")
 	}
 	cmdargs := strings.Split(c.Message().Payload, " ")
+	result := ""
+	// check if we have username in db/chache
+	// TODO add chache check
+	uid, err := serv.UserByUsername(cmdargs[0])
+	if uid != 0 && err == nil {
+		// first word in message is username from our base, sending to him
+		for i, str := range cmdargs {
+			if i != 0 {
+				result = strings.Join([]string{result, str}, " ")
+			}
+		}
+		if c.Chat().Title == "" {
+			result += fmt.Sprintf("\n\n^^^^^^^^^\nот %s", username)
+		} else {
+			result += fmt.Sprintf("\n\n^^^^^^^^^\nот %s\nИз чата %s", username, c.Chat().Title)
+		}
+		c.Bot().Send(&tele.Chat{ID: uid}, result)
+		report := fmt.Sprintf("Отправили ваше письмо человечку %s", cmdargs[0])
+		return c.Send(report)
+	}
 	num, err := strconv.Atoi(cmdargs[0])
 	if err != nil {
 		return c.Send("введите номер чатика из списька а потом сообщеньку")
@@ -518,7 +538,6 @@ func CmdMetatronChatSend(c tele.Context, serv *servitor.Servitor, username strin
 		return c.Send("номер чатика должен быть большее нулика")
 	}
 	// prepare message and chat coordinates
-	result := ""
 	for i, str := range cmdargs {
 		if i != 0 {
 			result = strings.Join([]string{result, str}, " ")
@@ -839,6 +858,9 @@ func DnDRollChar(c tele.Context, serv *servitor.Servitor, brain *BigBrain) error
 	message2 += "Вооружон " + string(chel.Weapon.Name) + "\n"
 	if chel.WeaponOffhand != nil {
 		message2 += "Во второй руке " + string(chel.WeaponOffhand.Name) + "\n"
+	}
+	if chel.Shield != nil {
+		message2 += "щиток " + string(chel.Shield.Name)
 	}
 	if chel.WeaponRanged != nil {
 		message2 += "Дальнобойная волына " + string(chel.WeaponRanged.Name) + "\n"

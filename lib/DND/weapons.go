@@ -15,6 +15,7 @@ type Weapon struct {
 	VersRolls        int
 	VersDice         int
 	WeaponProperties []WeaponProperty
+	AC               int
 }
 
 type WeaponProperty string
@@ -208,6 +209,18 @@ func CreateWeaponLongbow() *Weapon {
 
 	return &w
 }
+
+func CreateWeaponShield() *Weapon {
+	var armor Weapon
+	armor.Name = "Шыт"
+	armor.CostGold = 10
+	armor.AC = 2
+	armor.Weight = 6
+
+	return &armor
+}
+
+// misc
 
 func (w *Weapon) ifFencing() bool {
 	for _, p := range w.WeaponProperties {

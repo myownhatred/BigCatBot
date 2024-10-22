@@ -21,12 +21,6 @@ import (
 	tele "gopkg.in/telebot.v3"
 )
 
-const (
-	tgBotHost   = "api.telegram.org"
-	storagePath = "storage"
-	batchSize   = 100
-)
-
 func main() {
 
 	opts := PrettyHandlerOptions{
@@ -40,7 +34,7 @@ func main() {
 	//	"executing database query",
 	//	slog.String("query", "SELECT * FROM users"),
 	//)
-	logger.Info("aux init started", slog.String("version", "0.1.16"))
+	logger.Info("aux init started", slog.String("version", "0.1.19"))
 
 	scrap := twitterscraper.New()
 	scrap.WithDelay(5)

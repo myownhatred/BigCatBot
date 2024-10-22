@@ -3,6 +3,7 @@ wakakey: "key for wakatime api"
 telegramtoken: "obvious telegram token"
 openweathertoken: "token for openweather"
 mothership: -1111111 #chat ID of main chat for critical notifications - group invite for now
+jonchat: -11111112
 misterx: -12345667
 jokepath: "/path/to/dad/joke"
 # postgres credentials and db name

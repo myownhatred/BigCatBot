@@ -74,6 +74,7 @@ type Police interface {
 	AchGroups() (IDs []int, GroupNames []string, err error)
 	UserAchs(UserID int64) (IDs []int, UserIDs []int64, AchIDs []int, Dates []time.Time, Chats []string, ChatIDs []int64, err error)
 	UserAchAdd(UserID int64, AID int, chat string, chatID int64) (UAID int, err error)
+	UserByUsername(username string) (UID int64, err error)
 }
 
 type Bringer struct {

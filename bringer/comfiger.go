@@ -32,6 +32,9 @@ func (c *ComfigViper) GetAppComfigFromViper() (*config.AppConfig, error) {
 	if c.v.IsSet("misterx") {
 		comfig.MisterX = c.v.GetInt64("misterx")
 	}
+	if c.v.IsSet("jonchat") {
+		comfig.JonChat = c.v.GetInt64("jonchat")
+	}
 	if c.v.IsSet("mothership") {
 		comfig.MotherShip = c.v.GetInt64("mothership")
 		return comfig, nil

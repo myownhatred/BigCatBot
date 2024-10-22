@@ -34,14 +34,14 @@ func (mc *MediaCreatorServ) MediaDayOfWeekFile() (file tele.File, err error) {
 	switch currentDay {
 	case time.Sunday:
 		mc.logger.Info("case of Sunday")
-		fileS, err := getRandomFileFromDir("./assets/week/Any")
+		fileS, err := getRandomFileFromDir("./assets/week/Sunday")
 		if err != nil {
 			return fileD, err
 		}
 		mc.logger.Info("Sunday pic",
 			slog.String("filename ", fileS),
 		)
-		file = tele.FromDisk("./assets/week/Any/" + fileS)
+		file = tele.FromDisk("./assets/week/Sunday/" + fileS)
 		return file, nil
 	case time.Monday:
 		mc.logger.Info("case of Monday")
