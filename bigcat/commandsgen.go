@@ -22,13 +22,21 @@ func CmdGetGeneratorStatus(c tele.Context, serv *servitor.Servitor) (err error) 
 		return c.Send("беда:" + err.Error())
 	}
 	if s.Armed {
-		report := fmt.Sprintf("Генератор активен\nПозывной:%s\nМодели:\n", s.Callsign)
+		report := fmt.Sprintf("Позывной генератора:%s", s.Callsign)
+		incButtons := &tele.ReplyMarkup{ResizeKeyboard: true}
+
+		var rows []tele.Row
+
+		//return c.Send(message, incButtons)
 		for _, m := range s.Models {
-			report += fmt.Sprintf("%d - %s\n", m.ID, m.Name)
+			rows = append(rows, incButtons.Row(incButtons.Data(m.Name, fmt.Sprintf("gen%d", m.ID))))
 		}
-		return c.Send(report)
+		rows = append(rows, incButtons.Row(incButtons.Data("скрыть", "sweep")))
+
+		incButtons.Inline(rows...)
+
+		return c.Send(report, incButtons)
 	} else {
 		return c.Send("Нет активных генераторов")
 	}
-
 }

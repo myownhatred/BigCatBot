@@ -41,8 +41,9 @@ type ChatContent struct {
 }
 
 type GeneratorTrap struct {
-	UID    int64
-	ChatID int64
+	UID     int64
+	ChatID  int64
+	ModelID int
 }
 
 type UserRules struct {

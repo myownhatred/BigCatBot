@@ -142,6 +142,49 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 			logger.Info("user not found:" + strconv.FormatInt(c.Sender().ID, 10))
 		}
 	}
+
+	// gen trap
+	gen, ok := brain.GenTrapMap[c.Sender().ID]
+	if ok {
+		if gen.ChatID == c.Chat().ID {
+			c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "начинаем генераш, пристегнитесъ")
+			delete(brain.GenTrapMap, c.Sender().ID)
+			err := serv.SendGenerationReq(gen.ModelID, c.Message().Text)
+			if err != nil {
+				return c.Send("проблемка: " + err.Error())
+			}
+			timeout := 300 * time.Second
+			timeoutChan := time.After(timeout)
+			ticker := time.NewTicker(3 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-timeoutChan:
+					return c.Send("ждали вашу генерацию аж 5 минутов, что-то пошло не так пахот")
+				case <-ticker.C:
+					state, err := serv.GetGenerationStatus()
+					if err != nil {
+						return c.Send("проблемка: " + err.Error())
+					}
+					if state == "searching" {
+						continue
+					}
+					if state == "not found" || state == "idle" {
+						return c.Send("почему-то больше не генерируем и картинка не нашлась, что-то пошло не так!")
+					}
+					if state == "found" {
+						m, _ := serv.MediaCreator.GeneratorPickup()
+						pho := &tele.Photo{
+							File:    m,
+							Caption: "#aigenerash #model" + strconv.Itoa(gen.ModelID),
+						}
+						return c.Send(pho)
+					}
+
+				}
+			}
+		}
+	}
 	// vector check
 	if brain.ChatFlags[c.Chat().ID].VectorGame {
 		logger.Info("vector game",
@@ -833,6 +876,7 @@ func DnDTargetsButtons(c tele.Context, serv *servitor.Servitor, brain *BigBrain)
 
 func CmdGenerateNewImage(c tele.Context, serv *servitor.Servitor) (err error) {
 	if c.Message().Payload == "" {
+
 		return CmdGetGeneratorStatus(c, serv)
 	}
 	cmdargs := strings.Split(c.Message().Payload, " ")

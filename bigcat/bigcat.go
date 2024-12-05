@@ -32,7 +32,7 @@ func New(tgBot *tele.Bot, serv *servitor.Servitor, str string, logger *slog.Logg
 	comfig, err := serv.GetAppComfig()
 	biggy := NewBigBrain()
 	if err != nil {
-		logger.Error("cant load comfig to kitty:%s", err.Error())
+		logger.Error("cant load comfig to kitty:" + err.Error())
 		os.Exit(1)
 	}
 	flag := &silly{
