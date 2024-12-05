@@ -1,6 +1,8 @@
 package bringer
 
 import (
+	"Guenhwyvar/entities"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -14,6 +16,10 @@ import (
 type GetRektResty struct {
 	r *resty.Client
 	v *viper.Viper
+}
+
+type FileState struct {
+	State string `json:"state"`
 }
 
 func NewGetRect(r *resty.Client, v *viper.Viper) *GetRektResty {
@@ -32,12 +38,7 @@ func (rekt *GetRektResty) GetWeatherDayForecast(place string) (report string, er
 		return "", fmt.Errorf("error getting weather forecast: %s", err)
 	}
 	// TODO: add to debug logging level
-	//fmt.Printf("\nError: %v", err)
-	//fmt.Printf("\nResponse Status Code: %v", res.StatusCode())
-	//fmt.Printf("\nResponse Status: %v", res.Status())
-	//fmt.Printf("\nResponse Body: %v", res)
-	//fmt.Printf("\nResponse Time: %v", res.Time())
-	//fmt.Printf("\nResponse Received At: %v", res.ReceivedAt())
+
 	var forecast Forecast
 	if err = json.Unmarshal(response.Body(), &forecast); err != nil {
 		return "", fmt.Errorf("error unmarshalling forecast to json: %s", err)
@@ -131,6 +132,54 @@ func (rekt *GetRektResty) GetCurrentWeather(place string) (report string, err er
 	report += "\n"
 
 	return report, nil
+}
+
+func (rekt *GetRektResty) SendGenerationReq(modelID int, prompt string) (err error) {
+	rekt.r.SetTLSClientConfig(&tls.Config{
+		InsecureSkipVerify: true,
+	})
+	generatorURL := "https://localhost:6009/generate"
+	_, err = rekt.r.R().
+		SetBody(GenerationRequest{ID: modelID, Prompt: prompt}).
+		Post(generatorURL)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (rekt *GetRektResty) GetGenerationStatus() (status string, err error) {
+	rekt.r.SetTLSClientConfig(&tls.Config{
+		InsecureSkipVerify: true,
+	})
+	statusURL := "https://localhost:6009/status"
+	resp, err := rekt.r.R().Get(statusURL)
+	if err != nil {
+		return "", err
+	}
+	var s FileState
+	err = json.Unmarshal(resp.Body(), &s)
+	if err != nil {
+		return "", err
+	}
+	return s.State, nil
+}
+
+func (rekt *GetRektResty) GetGeneratorStatus() (singa entities.Signa, err error) {
+	rekt.r.SetTLSClientConfig(&tls.Config{
+		InsecureSkipVerify: true,
+	})
+	statusURL := "https://localhost:6009/cnc"
+	resp, err := rekt.r.R().Get(statusURL)
+	if err != nil {
+		return entities.Signa{}, err
+	}
+	var s entities.Signa
+	err = json.Unmarshal(resp.Body(), &s)
+	if err != nil {
+		return entities.Signa{}, err
+	}
+	return s, nil
 }
 
 func hourReport(temp, wind float32, desc string) string {
@@ -239,4 +288,9 @@ type FreeGames struct {
 	TotalCount int        `json:"total_count"`
 	FreeList   [][]string `json:"free_list"`
 	UpdateTime string     `json:"update_time"`
+}
+
+type GenerationRequest struct {
+	ID     int    `json:"id"`
+	Prompt string `json:"prompt"`
 }

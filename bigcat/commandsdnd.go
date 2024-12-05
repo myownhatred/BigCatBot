@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"time"
 
-	tele "gopkg.in/telebot.v3"
+	tele "gopkg.in/telebot.v4"
 )
 
 func DnDJoinActive(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {

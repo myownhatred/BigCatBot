@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"time"
 
-	tele "gopkg.in/telebot.v3"
+	tele "gopkg.in/telebot.v4"
 )
 
 type WakaStuff interface {
@@ -55,12 +55,16 @@ type GetRekt interface {
 	GetWeatherDayForecast(place string) (report string, err error)
 	GetCurrentWeather(place string) (report string, err error)
 	GetFreeSteamGames() (report string, err error)
+	SendGenerationReq(modelID int, prompt string) (err error)
+	GetGenerationStatus() (status string, err error)
+	GetGeneratorStatus() (singa entities.Signa, err error)
 }
 
 type MediaCreator interface {
 	MediaManulFile() (tele.File, error)
 	MediaDayOfWeekFile() (tele.File, error)
 	RandomFileFromDir(dirPath string) (string, error)
+	GeneratorPickup() (file tele.File, err error)
 }
 
 type Police interface {

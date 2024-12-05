@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"strings"
 
-	tele "gopkg.in/telebot.v3"
+	tele "gopkg.in/telebot.v4"
 )
 
 func CallbackPikRouter(c tele.Context, serv *servitor.Servitor, brain *BigBrain) error {

@@ -1,7 +1,9 @@
 package bringer
 
 import (
+	"Guenhwyvar/lib/citizen"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
@@ -268,4 +270,50 @@ func (p *PolicePostgres) UserByUsername(username string) (UID int64, err error) 
 		return 0, err
 	}
 	return UID, nil
+}
+
+func (p *PolicePostgres) FullUserByID(UID int64) (*citizen.Citizen, error) {
+	query := `SELECT id, username, first_name, 
+	last_name, chat_role FROM users where id = $1`
+	var c = citizen.Citizen{}
+	c.ChatRole = *new(map[int64]citizen.Role)
+	row := p.db.QueryRow(query, UID)
+	var chatRoleJSON string
+	if err := row.Scan(&c.UserID, &c.Username, &c.Firstname, &c.Lastname,
+		&chatRoleJSON); err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal([]byte(chatRoleJSON), &c.ChatRole); err != nil {
+		return nil, fmt.Errorf("error unmarshalling chat_role: %w", err)
+	}
+
+	return &c, nil
+}
+
+func (p *PolicePostgres) FullUserInsert(c citizen.Citizen) error {
+	// Convert the ChatRole map to JSON
+	chatRoleJSON, err := json.Marshal(c.ChatRole)
+	if err != nil {
+		return fmt.Errorf("error marshalling chat_role: %w", err)
+	}
+
+	// Use UPSERT (INSERT ... ON CONFLICT) to either insert or update
+	query := `
+			INSERT INTO users (id, username, first_name, last_name, chat_role)
+			VALUES ($1, $2, $3, $4, $5)
+			ON CONFLICT (id) 
+			DO UPDATE SET username = EXCLUDED.username, 
+						  first_name = EXCLUDED.first_name, 
+						  last_name = EXCLUDED.last_name, 
+						  chat_role = EXCLUDED.chat_role`
+
+	// Execute the insert/update command
+	_, err = p.db.Exec(query, c.UserID, c.Username, c.Firstname, c.Lastname, chatRoleJSON)
+	if err != nil {
+		return fmt.Errorf("error executing upsert query: %w", err)
+	}
+
+	return nil
+
 }

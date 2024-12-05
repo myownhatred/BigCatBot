@@ -163,14 +163,3 @@ func CreateArmorHalfplate() *Armor {
 
 	return &armor
 }
-
-func CreateArmorShield() *Armor {
-	var armor Armor
-	armor.Name = "Шыт"
-	armor.CostGold = 10
-	armor.AC = 2
-	armor.BadStealth = false
-	armor.Weight = 6
-
-	return &armor
-}

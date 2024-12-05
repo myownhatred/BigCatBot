@@ -104,6 +104,10 @@ func (fil *Filler) MediaDayOfWeekFile() (file string, err error) {
 	}
 }
 
+func (fil *Filler) GeneratorPickup() (file string, err error) {
+	file = filepath.FromSlash("./" + "image.png")
+	return file, nil
+}
 func getRandomFileFromDir(dirPath string) (string, error) {
 	// Read the directory and get a list of files
 	files, err := os.ReadDir(dirPath)

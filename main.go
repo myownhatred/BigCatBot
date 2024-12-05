@@ -15,10 +15,10 @@ import (
 	"log/slog"
 
 	"github.com/go-resty/resty/v2"
-	twitterscraper "github.com/n0madic/twitter-scraper"
+	twitterscraper "github.com/imperatrona/twitter-scraper"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	tele "gopkg.in/telebot.v3"
+	tele "gopkg.in/telebot.v4"
 )
 
 func main() {

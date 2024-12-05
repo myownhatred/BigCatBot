@@ -5,6 +5,7 @@ import (
 	"Guenhwyvar/config"
 	"Guenhwyvar/entities"
 	dnd "Guenhwyvar/lib/DND"
+	"Guenhwyvar/lib/citizen"
 	"Guenhwyvar/lib/memser"
 	"Guenhwyvar/servitor"
 	"fmt"
@@ -16,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	tele "gopkg.in/telebot.v3"
+	tele "gopkg.in/telebot.v4"
 )
 
 // command handlers functions
@@ -89,6 +90,10 @@ const (
 	// piks commands
 	GetPikMenu = "/pik"
 	GetTestPik = "/piktest"
+	// generator commands
+	GenerateNewImage    = "/gen"
+	GetGeneratedImage   = "/genget"
+	GetGenerationStatus = "/genstatus"
 )
 
 func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain *BigBrain, comfig *config.AppConfig, logger *slog.Logger) error {
@@ -122,7 +127,15 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 					brain.UsersFlags[c.Sender().ID] = val
 					return c.Send("остановили форварденг")
 				}
-				//photo := c.Message().Photo
+				r := tele.Reaction{
+					Type:  "emoji",
+					Emoji: "👍",
+				}
+				rs := tele.Reactions{
+					Reactions: []tele.Reaction{r},
+					Big:       true,
+				}
+				c.Bot().React(c.Sender(), c.Message(), rs)
 				return c.ForwardTo(&tele.Chat{ID: val.MetatronChat})
 			}
 		} else {
@@ -139,6 +152,15 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 		}
 	}
 	command := msgText[0]
+	// police checkup
+	// TODO make sane after user cache implementash
+	if !citizen.Ordeal(command, brain.Users[c.Sender().ID]) {
+		logger.Info("bigcat commands",
+			slog.String("forbidden command", command),
+			slog.Int64("userID", c.Sender().ID),
+			slog.String("username", username),
+		)
+	}
 	// check if link (twitter)
 	if strings.HasPrefix(command, "https://twitter.com") || strings.HasPrefix(command, "https://x.com") {
 		pathVid, err := serv.TwitterGetVideo(command)
@@ -248,6 +270,12 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 		return CmdPikMenuMain(c)
 	case GetTestPik:
 		return CmdPikWeekTest(c, serv, brain)
+	case GenerateNewImage:
+		return CmdGenerateNewImage(c, serv)
+	case GetGeneratedImage:
+		return CmdGetGeneratedImage(c, serv)
+	case GetGenerationStatus:
+		return CmdGetGenerationStatus(c, serv)
 	default:
 		return nil
 	}
@@ -524,7 +552,7 @@ func CmdMetatronChatSend(c tele.Context, serv *servitor.Servitor, username strin
 		if c.Chat().Title == "" {
 			result += fmt.Sprintf("\n\n^^^^^^^^^\nот %s", username)
 		} else {
-			result += fmt.Sprintf("\n\n^^^^^^^^^\nот %s\nИз чата %s", username, c.Chat().Title)
+			result += fmt.Sprintf("\n\n^^^^^^^^^\nот %s\nИз чата %s", username, substring(c.Chat().Title, 20))
 		}
 		c.Bot().Send(&tele.Chat{ID: uid}, result)
 		report := fmt.Sprintf("Отправили ваше письмо человечку %s", cmdargs[0])
@@ -550,7 +578,7 @@ func CmdMetatronChatSend(c tele.Context, serv *servitor.Servitor, username strin
 	if c.Chat().Title == "" {
 		result += fmt.Sprintf("\n\n^^^^^^^^^\nот %s", username)
 	} else {
-		result += fmt.Sprintf("\n\n^^^^^^^^^\nот %s\nИз чата %s", username, c.Chat().Title)
+		result += fmt.Sprintf("\n\n^^^^^^^^^\nот %s\nИз чата %s", username, substring(c.Chat().Title, 20))
 	}
 	c.Bot().Send(&tele.Chat{ID: ChatIDs[num-1]}, result)
 	report := fmt.Sprintf("Отправили ваше письмо в чат %s", Names[num-1])
@@ -801,6 +829,69 @@ func DnDTargetsButtons(c tele.Context, serv *servitor.Servitor, brain *BigBrain)
 	rows = append(rows, incButtons.Row(incButtons.Data("скрыть", "sweep")))
 	incButtons.Inline(rows...)
 	return c.Send(message, incButtons)
+}
+
+func CmdGenerateNewImage(c tele.Context, serv *servitor.Servitor) (err error) {
+	if c.Message().Payload == "" {
+		return CmdGetGeneratorStatus(c, serv)
+	}
+	cmdargs := strings.Split(c.Message().Payload, " ")
+	num, err := strconv.Atoi(cmdargs[0])
+	if err != nil {
+		return c.Send("введите номер модели а потом промпт")
+	}
+	if num == 0 {
+		return c.Send("номер модели должен быть большее нулика")
+	}
+	result := ""
+	for i, str := range cmdargs {
+		if i != 0 {
+			result = strings.Join([]string{result, str}, " ")
+		}
+	}
+	c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "начинаем генераш, пристегнитесъ")
+	err = serv.SendGenerationReq(num, result)
+	if err != nil {
+		return c.Send("проблемка: " + err.Error())
+	}
+	timeout := 300 * time.Second
+	timeoutChan := time.After(timeout)
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-timeoutChan:
+			return c.Send("ждали вашу генерацию аж 5 минутов, что-то пошло не так пахот")
+		case <-ticker.C:
+			state, err := serv.GetGenerationStatus()
+			if err != nil {
+				return c.Send("проблемка: " + err.Error())
+			}
+			if state == "searching" {
+				continue
+			}
+			if state == "not found" || state == "idle" {
+				return c.Send("почему-то больше не генерируем и картинка не нашлась, что-то пошло не так!")
+			}
+			if state == "found" {
+				m, _ := serv.MediaCreator.GeneratorPickup()
+				pho := &tele.Photo{
+					File:    m,
+					Caption: "#aigenerash #model" + strconv.Itoa(num),
+				}
+				return c.Send(pho)
+			}
+
+		}
+	}
+}
+
+func CmdGetGenerationStatus(c tele.Context, serv *servitor.Servitor) (err error) {
+	stat, err := serv.GetGenerationStatus()
+	if err != nil {
+		return c.Send("беда с полусением ситатуса генерации слусилас:", err.Error())
+	}
+	return c.Send(stat)
 }
 
 func CmdUserAchAdd(c tele.Context, serv *servitor.Servitor) (err error) {
@@ -1220,4 +1311,21 @@ func DNDStatsAchievement(str, dex, con, inn, wis, cha int) (achive, title, desc 
 	}
 
 	return "", "", "", 0
+}
+
+func substring(s string, n int) string {
+	runes := []rune(s)
+	if n > len(runes) {
+		n = len(runes)
+	}
+	return string(runes[:n])
+}
+
+func commandCheck(command string, uid int64, brain *BigBrain) bool {
+	c := brain.Users[uid]
+	return citizen.Ordeal(command, c)
+}
+
+func forbiddenReply(command string, c tele.Context) error {
+	return c.Send("так как вы не настоящий реппер и goverment corrupt то вам нельзя в команду " + command)
 }

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	tele "gopkg.in/telebot.v3"
+	tele "gopkg.in/telebot.v4"
 )
 
 func CmdVectorAddNewType(c tele.Context, serv *servitor.Servitor) (err error) {

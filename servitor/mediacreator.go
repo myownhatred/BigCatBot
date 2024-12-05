@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	tele "gopkg.in/telebot.v3"
+	tele "gopkg.in/telebot.v4"
 )
 
 type MediaCreatorServ struct {
@@ -116,9 +116,10 @@ func (mc *MediaCreatorServ) MediaDayOfWeekFile() (file tele.File, err error) {
 
 func (mc *MediaCreatorServ) MediaManulFile() (file tele.File, err error) {
 	//TODO make it configurable
-	sourses := [8]string{"redpandaeveryhr", "OtterAnHour", "FennecEveryHr",
-		"PossumEveryHour", "ServalEveryHR", "raccoonhourly", "https://scryfall.com/random", "file/manyls"}
-	rand.Seed(time.Now().Unix())
+	// twi - "OtterAnHour"
+	sourses := [9]string{"redpandaeveryhr", "FennecEveryHr",
+		"PossumEveryHour", "ServalEveryHR", "raccoonhourly", "https://scryfall.com/random",
+		"file/manyls", "file/nintendo", "file/japan"}
 	toss := rand.Intn(len(sourses))
 	mc.logger.Info("coin toss result",
 		slog.Int("coin ", toss),
@@ -137,6 +138,30 @@ func (mc *MediaCreatorServ) MediaManulFile() (file tele.File, err error) {
 			slog.String("filename ", files[randIndex].Name()),
 		)
 		file = tele.FromDisk("./manyls/" + files[randIndex].Name())
+		return file, nil
+	case "file/nintendo":
+		mc.logger.Info("case of nintendo")
+		files, err := ioutil.ReadDir("./nintendo")
+		if err != nil {
+			return file, err
+		}
+		randIndex := rand.Intn(len(files))
+		mc.logger.Info("nintendo file pic",
+			slog.String("filename ", files[randIndex].Name()),
+		)
+		file = tele.FromDisk("./nintendo/" + files[randIndex].Name())
+		return file, nil
+	case "file/japan":
+		mc.logger.Info("case of japan")
+		files, err := ioutil.ReadDir("./japan")
+		if err != nil {
+			return file, err
+		}
+		randIndex := rand.Intn(len(files))
+		mc.logger.Info("japan file pic",
+			slog.String("filename ", files[randIndex].Name()),
+		)
+		file = tele.FromDisk("./japan/" + files[randIndex].Name())
 		return file, nil
 	case "https://scryfall.com/random":
 		mc.logger.Info("case of MTG")
@@ -164,6 +189,11 @@ func (mc *MediaCreatorServ) MediaManulFile() (file tele.File, err error) {
 		return file, nil
 	}
 
+}
+
+func (mc *MediaCreatorServ) GeneratorPickup() (file tele.File, err error) {
+	file = tele.FromDisk("./image.png")
+	return file, nil
 }
 
 func getRandomFileFromDir(dirPath string) (string, error) {

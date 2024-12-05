@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	cron "github.com/robfig/cron/v3"
-	tele "gopkg.in/telebot.v3"
+	tele "gopkg.in/telebot.v4"
 )
 
 type BigCat struct {

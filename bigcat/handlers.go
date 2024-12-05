@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	tele "gopkg.in/telebot.v3"
+	tele "gopkg.in/telebot.v4"
 )
 
 var (
@@ -98,6 +98,15 @@ func (bh *BotHandler) AddHandler() {
 			}
 			val := bh.brain.UsersFlags[c.Sender().ID]
 			if val.MetatronFordwardFlag {
+				r := tele.Reaction{
+					Type:  "emoji",
+					Emoji: "👍",
+				}
+				rs := tele.Reactions{
+					Reactions: []tele.Reaction{r},
+					Big:       true,
+				}
+				c.Bot().React(c.Sender(), c.Message(), rs)
 				return c.ForwardTo(&tele.Chat{ID: val.MetatronChat})
 			}
 		}
@@ -116,6 +125,15 @@ func (bh *BotHandler) AddHandler() {
 			}
 			val := bh.brain.UsersFlags[c.Sender().ID]
 			if val.MetatronFordwardFlag {
+				r := tele.Reaction{
+					Type:  "emoji",
+					Emoji: "👍",
+				}
+				rs := tele.Reactions{
+					Reactions: []tele.Reaction{r},
+					Big:       true,
+				}
+				c.Bot().React(c.Sender(), c.Message(), rs)
 				return c.ForwardTo(&tele.Chat{ID: val.MetatronChat})
 			}
 		}

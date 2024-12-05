@@ -9,9 +9,11 @@ const (
 )
 
 type Citizen struct {
-	UserID    int64
-	Username  string
-	Firstname string
-	Lastname  string
-	Role      Role
+	UserID      int64
+	Username    string
+	Firstname   string
+	Lastname    string
+	Role        Role
+	ChatRole    map[int64]Role
+	CommandsSet map[string]bool
 }

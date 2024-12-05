@@ -2,6 +2,7 @@ package servitor
 
 import (
 	"Guenhwyvar/bringer"
+	"Guenhwyvar/entities"
 )
 
 type GetRektServ struct {
@@ -34,4 +35,16 @@ func (rekt *GetRektServ) GetFreeSteamGames() (report string, err error) {
 		return "", err
 	}
 	return report, nil
+}
+
+func (rekt *GetRektServ) SendGenerationReq(modelID int, prompt string) (err error) {
+	return rekt.bringer.SendGenerationReq(modelID, prompt)
+}
+
+func (rekt *GetRektServ) GetGenerationStatus() (status string, err error) {
+	return rekt.bringer.GetGenerationStatus()
+}
+
+func (rekt *GetRektServ) GetGeneratorStatus() (singa entities.Signa, err error) {
+	return rekt.bringer.GetGeneratorStatus()
 }

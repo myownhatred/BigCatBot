@@ -13,7 +13,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	twitterscraper "github.com/n0madic/twitter-scraper"
+	twitterscraper "github.com/imperatrona/twitter-scraper"
 )
 
 type WakaStuff interface {
@@ -64,6 +64,9 @@ type GetRekt interface {
 	GetCurrentWeather(place string) (report string, err error)
 	GetRandomMTG() (url string, err error)
 	GetFreeSteamGames() (string, error)
+	SendGenerationReq(modelID int, prompt string) (err error)
+	GetGenerationStatus() (status string, err error)
+	GetGeneratorStatus() (singa entities.Signa, err error)
 }
 
 type Police interface {
