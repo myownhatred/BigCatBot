@@ -43,3 +43,10 @@ func (m *FreeMawServ) FreeMawVectorAdd(vec entities.FreeVector) (err error) {
 func (m *FreeMawServ) FreeMawVectorGetRandomByType(typ int) (vec entities.FreeVector, err error) {
 	return m.bringer.FreeMawVectorGetRandomByType(typ)
 }
+
+func (m *FreeMawServ) FreeMawVectorUpsertScore(uid int64, vectorType int, score int) error {
+	return m.bringer.FreeMawVectorUpsertScore(uid, vectorType, score)
+}
+func (m *FreeMawServ) FreeMawVectorGetTopScores(limit int) (scores []entities.VectorScore, err error) {
+	return m.bringer.FreeMawVectorGetTopScores(limit)
+}

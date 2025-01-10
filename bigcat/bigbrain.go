@@ -24,9 +24,14 @@ type BigBrain struct {
 	Party       map[int64]dnd.Char
 	Game        *dnd.Game
 	ChatContent map[int64](ChatContent)
-	VectorChan  chan string
+	VectorChan  chan VectorChanS
 	VectorGame  map[int64](freevector.VectorCore)
 	GenTrapMap  map[int64](GeneratorTrap)
+}
+
+type VectorChanS struct {
+	Uid  int64
+	Text string
 }
 
 type ChatRules struct {
@@ -73,7 +78,7 @@ func NewBigBrain() *BigBrain {
 		Party:       make(map[int64](dnd.Char)),
 		ChatContent: make(map[int64](ChatContent)),
 		Game:        dnd.NewGame(),
-		VectorChan:  make(chan string),
+		VectorChan:  make(chan VectorChanS),
 		VectorGame:  make(map[int64](freevector.VectorCore)),
 		GenTrapMap:  make(map[int64](GeneratorTrap)),
 	}

@@ -5,15 +5,20 @@ import (
 	"strings"
 )
 
+type VectorChanS struct {
+	Uid  int64
+	Text string
+}
+
 type VectorCore struct {
 	CurrentQuestion entities.FreeVector
-	CommChan        chan string
+	VectorChan      chan VectorChanS
 }
 
 func NewVectorCore() (vc *VectorCore) {
 	return &VectorCore{
 		CurrentQuestion: entities.FreeVector{},
-		CommChan:        make(chan string),
+		VectorChan:      make(chan VectorChanS),
 	}
 }
 

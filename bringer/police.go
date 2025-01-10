@@ -317,3 +317,24 @@ func (p *PolicePostgres) FullUserInsert(c citizen.Citizen) error {
 	return nil
 
 }
+
+func (p *PolicePostgres) GetAllUsers() (allUsers []citizen.Citizen, err error) {
+	query := `
+		SELECT * FROM users;
+	`
+	rows, err := p.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("error getting all users from DB: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var cit citizen.Citizen
+		var null sql.NullString
+		if err = rows.Scan(&cit.UserID, &cit.Firstname, &cit.Lastname, &cit.Username, &null); err != nil {
+			return nil, fmt.Errorf("error getting single scores row from DB: %w", err)
+		}
+		allUsers = append(allUsers, cit)
+	}
+	return allUsers, nil
+}

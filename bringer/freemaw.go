@@ -3,6 +3,7 @@ package bringer
 import (
 	"Guenhwyvar/entities"
 	"database/sql"
+	"fmt"
 	"log/slog"
 )
 
@@ -143,4 +144,46 @@ func (m *FreeMawPostgres) FreeMawVectorGetRandomByType(typ int) (vec entities.Fr
 	}
 
 	return vec, nil
+}
+
+func (m *FreeMawPostgres) FreeMawVectorUpsertScore(uid int64, vectorType int, score int) error {
+	query := `
+		INSERT INTO vector_scores (uid, vector_type, score)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (uid, vector_type)
+		DO UPDATE SET score = vector_scores.score + $3
+	`
+
+	_, err := m.db.Exec(query, uid, vectorType, score)
+	m.logger.Error("bringer freemas error - upserting score",
+		slog.String("query", query),
+		slog.Int64("UID", uid),
+		slog.Int("vector type", vectorType),
+		slog.Int("score", score))
+	return fmt.Errorf("error on upsert score: %w", err)
+}
+
+func (m *FreeMawPostgres) FreeMawVectorGetTopScores(limit int) (scores []entities.VectorScore, err error) {
+	query := `
+		SELECT uid, 0 as vec_type, SUM(score) as total_score
+		FROM vector_scores
+		GROUP BY uid
+		ORDER BY total_score DESC
+		LIMIT $1
+	`
+
+	rows, err := m.db.Query(query, limit)
+	if err != nil {
+		return nil, fmt.Errorf("error getting all scores from DB: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var score entities.VectorScore
+		if err = rows.Scan(&score.UID, &score.VectorType, &score.Score); err != nil {
+			return nil, fmt.Errorf("error getting single scores row from DB: %w", err)
+		}
+		scores = append(scores, score)
+	}
+	return scores, nil
 }

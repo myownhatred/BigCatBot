@@ -21,3 +21,9 @@ type VectorAnswer struct {
 	QuestionID int
 	Answer     string
 }
+
+type VectorScore struct {
+	UID        int64
+	VectorType int
+	Score      int
+}

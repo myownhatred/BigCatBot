@@ -2,6 +2,7 @@ package servitor
 
 import (
 	"Guenhwyvar/bringer"
+	"Guenhwyvar/lib/citizen"
 	"log/slog"
 	"time"
 )
@@ -44,4 +45,8 @@ func (p *PoliceServ) UserAchAdd(UserID int64, AID int, chat string, chatID int64
 
 func (p *PoliceServ) UserByUsername(username string) (UID int64, err error) {
 	return p.pol.UserByUsername(username)
+}
+
+func (p *PoliceServ) GetAllUsers() (allUsers []citizen.Citizen, err error) {
+	return p.pol.GetAllUsers()
 }

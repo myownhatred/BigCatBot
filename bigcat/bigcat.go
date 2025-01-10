@@ -60,13 +60,18 @@ func New(tgBot *tele.Bot, serv *servitor.Servitor, str string, logger *slog.Logg
 
 func (c *BigCat) Start() {
 	c.loadComfig()
+	// user cache upload
+	users, _ := c.serv.Police.GetAllUsers()
+	for _, u := range users {
+		c.bigBrain.Users[u.UserID] = u
+	}
 	// CRON JOBS
 	// mobilizatsya
 	c.clock.AddFunc("15 0 2 * * *", func() {
 		//pik, err := memser.DaysMob()
 		pik, err := memser.DaysToSomething()
 		if err != nil {
-			c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, fmt.Sprintf("при созании картинки для сбросика таймер случчилась бида:%s", err.Error()))
+			c.tgBot.Send(&tele.Chat{ID: c.bigBrain.Comfig.MotherShip}, fmt.Sprintf("при созании картинки для будущего события случилась беда:%s", err.Error()))
 		}
 		m := &tele.Photo{
 			File: tele.FromDisk(pik),

@@ -3,6 +3,7 @@ package bringer
 import (
 	"Guenhwyvar/config"
 	"Guenhwyvar/entities"
+	"Guenhwyvar/lib/citizen"
 	"database/sql"
 	"log/slog"
 	"time"
@@ -48,6 +49,8 @@ type FreeMaw interface {
 	FreeMawVectorTypes() (report []entities.VectorType, err error)
 	FreeMawVectorAdd(vec entities.FreeVector) (err error)
 	FreeMawVectorGetRandomByType(typ int) (vec entities.FreeVector, err error)
+	FreeMawVectorUpsertScore(uid int64, vectorType int, score int) error
+	FreeMawVectorGetTopScores(limit int) (scores []entities.VectorScore, err error)
 }
 
 type Comfiger interface {
@@ -78,6 +81,7 @@ type Police interface {
 	UserAchs(UserID int64) (IDs []int, UserIDs []int64, AchIDs []int, Dates []time.Time, Chats []string, ChatIDs []int64, err error)
 	UserAchAdd(UserID int64, AID int, chat string, chatID int64) (UAID int, err error)
 	UserByUsername(username string) (UID int64, err error)
+	GetAllUsers() (allUsers []citizen.Citizen, err error)
 }
 
 type Bringer struct {

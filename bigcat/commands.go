@@ -7,6 +7,7 @@ import (
 	dnd "Guenhwyvar/lib/DND"
 	"Guenhwyvar/lib/citizen"
 	"Guenhwyvar/lib/memser"
+	freevector "Guenhwyvar/lib/vector"
 	"Guenhwyvar/servitor"
 	"fmt"
 	"io/ioutil"
@@ -71,6 +72,7 @@ const (
 	VectorGetTypes   = "/vectortypes"
 	VectorAddNew     = "/vectoraddq"
 	VectorGame       = "/vectorgame"
+	VectorGetScores  = "/vectorscore"
 	// card stuff
 	Card = "/card"
 	// weather
@@ -87,6 +89,9 @@ const (
 	UserAchList = "/achlist"
 	UserAchAdd  = "/achtest"
 	UserAchAdd2 = "/achtesttwo"
+	// police misc
+	CitizenAllSimple   = "/citalls"
+	CitizenAllSimpleDB = "/citallsb"
 	// piks commands
 	GetPikMenu = "/pik"
 	GetTestPik = "/piktest"
@@ -99,6 +104,7 @@ const (
 func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain *BigBrain, comfig *config.AppConfig, logger *slog.Logger) error {
 	username := "АНОНИМ_ЛЕГИВОН"
 	lastname := "Doe"
+	UID := c.Sender().ID
 	if c.Sender().Username != "" {
 		username = c.Sender().Username
 	}
@@ -113,6 +119,16 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 		slog.String("lastname:", lastname),
 		slog.String("message:", c.Message().Text))
 	msgText := strings.Split(c.Message().Text, " ")
+
+	// user's cache check
+	cit, ok := brain.Users[UID]
+	if !ok {
+		cit.UserID = UID
+		cit.Username = username
+		cit.Firstname = c.Sender().FirstName
+		cit.Lastname = lastname
+		brain.Users[UID] = cit
+	}
 
 	// metatron check
 
@@ -187,11 +203,20 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 	}
 	// vector check
 	if brain.ChatFlags[c.Chat().ID].VectorGame {
-		logger.Info("vector game",
-			slog.String("checking if message of this chact is really an answer, sender ", username))
 		vc := brain.VectorGame[c.Chat().ID]
-		if vc.CheckAnswer(strings.ToLower(c.Message().Text)) {
-			brain.VectorChan <- username
+		logger.Info("vector game checking if message is gamestopper ")
+		if c.Message().Text == "/vectorstop" {
+			vc.VectorChan <- freevector.VectorChanS{
+				Uid:  0,
+				Text: "",
+			}
+		}
+		logger.Info("vector game",
+			slog.String("sending uid and message to game for check, sender ", username))
+
+		vc.VectorChan <- freevector.VectorChanS{
+			Uid:  UID,
+			Text: c.Message().Text,
 		}
 	}
 	command := msgText[0]
@@ -301,6 +326,10 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 		return CmdUserAchList(c, serv)
 	case UserAchAdd:
 		return CmdUserAchAdd(c, serv)
+	case CitizenAllSimple:
+		return CmdCitizensAllSimpe(c, brain)
+	case CitizenAllSimpleDB:
+		return CmdCitizensAllBase(c, serv)
 	case VectorAddNewType:
 		return CmdVectorAddNewType(c, serv)
 	case VectorGetTypes:
@@ -309,6 +338,8 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 		return CmdVectorAddNew(c, serv)
 	case VectorGame:
 		return CmdVectorGame(c, serv, brain)
+	case VectorGetScores:
+		return CmdVectorGetScores(c, serv, brain)
 	case GetPikMenu:
 		return CmdPikMenuMain(c)
 	case GetTestPik:

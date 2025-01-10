@@ -4,6 +4,7 @@ import (
 	"Guenhwyvar/entities"
 	freevector "Guenhwyvar/lib/vector"
 	"Guenhwyvar/servitor"
+	"fmt"
 	"log/slog"
 	"math"
 	"math/rand"
@@ -47,9 +48,9 @@ func CmdVectorAddNew(c tele.Context, serv *servitor.Servitor) (err error) {
 	if c.Message().Payload == "" {
 		return c.Send("пазязя предоставьте 👐 данные для добавления нового воплосика!")
 	}
-	data := strings.Split(c.Message().Payload, ",")
+	data := strings.Split(c.Message().Payload, ";")
 	if len(data) < 4 {
-		return c.Send("пазязя введите как минимум 4 параметра, разделённих запятими:\n- номир викториньки\n- ссылоцку на калтиноцку\n- воплосик\n- ответики чирис запитую, можно несколько")
+		return c.Send("пазязя введите как минимум 4 параметра, разделённих тоцкой с запятой (запятоцкой):\n- номир викториньки\n- ссылоцку на калтиноцку\n- воплосик\n- ответики чирис запитую, можно несколько")
 	}
 	for i, s := range data {
 		data[i] = strings.TrimSpace(s)
@@ -72,8 +73,11 @@ func CmdVectorAddNew(c tele.Context, serv *servitor.Servitor) (err error) {
 		return c.Send("казеться вы ввели neco-ректную ссылотьку 😈")
 	}
 	question.Question = data[2]
-	for i := 3; i < len(data); i++ {
-		question.Answers = append(question.Answers, entities.VectorAnswer{ID: i, QuestionID: 6666, Answer: data[i]})
+	answersArray := strings.Split(data[3], ",")
+	for i := 0; i < len(answersArray); i++ {
+		answersArray[i] = strings.TrimSpace(answersArray[i])
+		// QuestionID:6666 is placeholder and be changed at the moment of DB insert
+		question.Answers = append(question.Answers, entities.VectorAnswer{ID: i, QuestionID: 6666, Answer: answersArray[i]})
 	}
 	question.UserID = c.Sender().ID
 	err = serv.FreeMawVectorAdd(question)
@@ -101,8 +105,9 @@ func CmdVectorGame(c tele.Context, s *servitor.Servitor, brain *BigBrain) (err e
 	gF := brain.ChatFlags[c.Chat().ID]
 	gF.VectorGame = true
 	brain.ChatFlags[c.Chat().ID] = gF
+	var rs = make(map[int64]int)
 	vc := freevector.NewVectorCore()
-	for i := 0; i < 4; i++ {
+	for i := 0; i < 10; i++ {
 		question, err := s.FreeMawVectorGetRandomByType(num)
 		answerString := ""
 		for ix, a := range question.Answers {
@@ -112,7 +117,6 @@ func CmdVectorGame(c tele.Context, s *servitor.Servitor, brain *BigBrain) (err e
 				answerString += a.Answer + " / "
 			}
 		}
-
 		if err != nil {
 			return c.Send("осибка с номером при получении вопроса викторины:\n" + err.Error())
 		}
@@ -123,14 +127,14 @@ func CmdVectorGame(c tele.Context, s *servitor.Servitor, brain *BigBrain) (err e
 		one, two, three := createHelpLines(question, s.Logger)
 		m := &tele.Photo{
 			File:    tele.FromURL(question.PicLink),
-			Caption: question.Question,
+			Caption: fmt.Sprintf("Вопрос %d - %s", i+1, question.Question),
 		}
 		c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, m)
 		firstHelp := 14 * time.Second
 		secondHelp := 15 * time.Second
 		thirdHelp := 16 * time.Second
 		endGame := 17 * time.Second
-		sex := ""
+		vecscore := 3
 	timers:
 		select {
 		case <-time.After(firstHelp):
@@ -144,12 +148,14 @@ func CmdVectorGame(c tele.Context, s *servitor.Servitor, brain *BigBrain) (err e
 				slog.Int("mumber ", i))
 			c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "подсказька - "+two)
 			secondHelp += time.Hour
+			vecscore--
 			goto timers
 		case <-time.After(thirdHelp):
 			s.Logger.Info("vector game loop question case of 45 secs",
 				slog.Int("mumber ", i))
 			c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "подсказька - "+three)
 			thirdHelp += time.Hour
+			vecscore--
 			goto timers
 		case <-time.After(endGame):
 			s.Logger.Info("vector game loop question case of 60 secs",
@@ -157,19 +163,47 @@ func CmdVectorGame(c tele.Context, s *servitor.Servitor, brain *BigBrain) (err e
 			c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "какие то вайбы кожанного позора, ответ - "+answerString)
 			time.Sleep(4 * time.Second)
 			continue
-		case sex = <-brain.VectorChan:
-			s.Logger.Info("vector game loop question case of right answer",
-				slog.Int("mumber ", i))
-			c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "правильный атвет,"+sex)
-			c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, answerString)
-			time.Sleep(4 * time.Second)
-			continue
+		case uidText := <-vc.VectorChan:
+			// if we have 0 in chan - means /vectorstop has arrived
+			if uidText.Uid == 0 {
+				c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "заканчиваем шпилу!")
+				goto endshpil
+			}
+			if vc.CheckAnswer(strings.ToLower(uidText.Text)) {
+				uname := brain.Users[uidText.Uid].Username
+				s.Logger.Info("vector game loop question case of right answer",
+					slog.Int("mumber ", i))
+				c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "правильный атвет, "+uname)
+				rs[uidText.Uid] += vecscore
+				s.FreeMaw.FreeMawVectorUpsertScore(uidText.Uid, num, vecscore)
+				c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, answerString)
+				time.Sleep(4 * time.Second)
+				continue
+			}
+			goto timers
 		}
 		//c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, one+" - "+two+" - "+three)
 	}
+endshpil:
 	gF.VectorGame = false
 	brain.ChatFlags[c.Chat().ID] = gF
-	return c.Send("конец раунда, биатч")
+	res := ""
+	for k, v := range rs {
+		res += fmt.Sprintf("плеер %s набрал %d очкобеней\n", brain.Users[k].Username, v)
+	}
+	return c.Send(res + "конец раунда, биатч")
+}
+
+func CmdVectorGetScores(c tele.Context, serv *servitor.Servitor, brain *BigBrain) error {
+	report := "Очкобени\n"
+	scores, err := serv.FreeMawVectorGetTopScores(10)
+	if err != nil {
+		return c.Send("проблема с получением очечей: %s", err.Error())
+	}
+	for _, s := range scores {
+		report += brain.Users[s.UID].Username + " " + strconv.Itoa(s.Score) + "\n"
+	}
+	return c.Send(report)
 }
 
 func checkVectorTypesHaveNumber(report []entities.VectorType, number int) bool {
@@ -192,25 +226,33 @@ func createHelpLines(q entities.FreeVector, logger *slog.Logger) (first, second,
 	logger.Info("vector game helping answer is",
 		slog.String("answer ", longest))
 	// short lines exceptions
+	if len(longest) <= 2 {
+		return "**", "**", "**"
+	}
 	if len(longest) <= 3 {
 		return "***", "***", "***"
 	}
-	revealFirst := int(math.Round(float64(len(longest) * 10 / 100)))
+	revealFirst := int(math.Round(float64(len(longest) * 20 / 100)))
 	logger.Info("vector game estimates ",
 		slog.Int("10% ", revealFirst))
-	revealSecond := int(math.Round(float64(len(longest) * 20 / 100)))
+	revealSecond := int(math.Round(float64(len(longest) * 30 / 100)))
 	logger.Info("vector game estimates ",
 		slog.Int("20% ", revealSecond))
-	revealThird := int(math.Round(float64(len(longest) * 30 / 100)))
+	revealThird := int(math.Round(float64(len(longest) * 40 / 100)))
 	logger.Info("vector game estimates ",
 		slog.Int("40% ", revealThird))
 	// Convert to rune slice to handle multi-byte characters properly
-	if len(longest) <= 4 {
+	if len(longest) == 4 {
 		revealFirst = 1
 		revealSecond = 1
 		revealThird = 2
 	}
-	if len(longest) <= 6 {
+	if len(longest) == 5 {
+		revealFirst = 1
+		revealSecond = 1
+		revealThird = 2
+	}
+	if len(longest) == 6 {
 		revealFirst = 1
 		revealSecond = 2
 		revealThird = 3
