@@ -99,7 +99,7 @@ func CmdVectorGame(c tele.Context, s *servitor.Servitor, brain *BigBrain) (err e
 	if err != nil {
 		return c.Send("осибка с номером викториньки\nвы точно ввели целое цисло?")
 	}
-	c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, strconv.Itoa(num))
+	//c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, strconv.Itoa(num))
 	s.Logger.Info("vector game",
 		slog.Int("mumber", num))
 	gF := brain.ChatFlags[c.Chat().ID]
@@ -130,59 +130,70 @@ func CmdVectorGame(c tele.Context, s *servitor.Servitor, brain *BigBrain) (err e
 			Caption: fmt.Sprintf("Вопрос %d - %s", i+1, question.Question),
 		}
 		c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, m)
-		firstHelp := 14 * time.Second
-		secondHelp := 15 * time.Second
-		thirdHelp := 16 * time.Second
-		endGame := 17 * time.Second
+		firstHelp := false
+		secondHelp := false
+		thirdHelp := false
+
 		vecscore := 3
-	timers:
-		select {
-		case <-time.After(firstHelp):
-			s.Logger.Info("vector game loop question case of 15 secs",
-				slog.Int("mumber ", i))
-			c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "подсказька - "+one)
-			firstHelp += time.Hour
-			goto timers
-		case <-time.After(secondHelp):
-			s.Logger.Info("vector game loop question case of 30 secs",
-				slog.Int("mumber ", i))
-			c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "подсказька - "+two)
-			secondHelp += time.Hour
-			vecscore--
-			goto timers
-		case <-time.After(thirdHelp):
-			s.Logger.Info("vector game loop question case of 45 secs",
-				slog.Int("mumber ", i))
-			c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "подсказька - "+three)
-			thirdHelp += time.Hour
-			vecscore--
-			goto timers
-		case <-time.After(endGame):
-			s.Logger.Info("vector game loop question case of 60 secs",
-				slog.Int("mumber ", i))
-			c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "какие то вайбы кожанного позора, ответ - "+answerString)
-			time.Sleep(4 * time.Second)
-			continue
-		case uidText := <-vc.VectorChan:
-			// if we have 0 in chan - means /vectorstop has arrived
-			if uidText.Uid == 0 {
-				c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "заканчиваем шпилу!")
-				goto endshpil
+		gameStart := time.Now()
+
+		for {
+			eslaped := time.Since(gameStart)
+			select {
+			case uidText := <-vc.VectorChan:
+				// if we have 0 in chan - means /vectorstop has arrived
+				if uidText.Uid == 0 {
+					c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "заканчиваем шпилу!")
+					goto endshpil
+				}
+
+				if vc.CheckAnswer(strings.ToLower(uidText.Text)) {
+					uname := brain.Users[uidText.Uid].Username
+					s.Logger.Info("vector game loop question case of right answer",
+						slog.Int("mumber ", i))
+					c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "правильный атвет, "+uname)
+					rs[uidText.Uid] += vecscore
+					s.FreeMaw.FreeMawVectorUpsertScore(uidText.Uid, num, vecscore)
+					c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, answerString)
+					time.Sleep(4 * time.Second)
+					goto nextQuestion
+				}
+
+			// checking stuff every second
+			case <-time.After(1 * time.Second):
+				if eslaped >= 15*time.Second && !firstHelp {
+					s.Logger.Info("vector game loop question case of 15 secs",
+						slog.Int("mumber ", i))
+					c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "подсказька - "+one)
+					firstHelp = true
+
+				}
+				if eslaped >= 30*time.Second && !secondHelp {
+					s.Logger.Info("vector game loop question case of 30 secs",
+						slog.Int("mumber ", i))
+					c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "подсказька - "+two)
+					secondHelp = true
+					vecscore--
+				}
+				if eslaped >= 45*time.Second && !thirdHelp {
+					s.Logger.Info("vector game loop question case of 30 secs",
+						slog.Int("mumber ", i))
+					c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "подсказька - "+three)
+					thirdHelp = true
+					vecscore--
+				}
+				if eslaped >= 60*time.Second {
+					s.Logger.Info("vector game loop question case of 60 secs",
+						slog.Int("mumber ", i))
+					c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "какие то вайбы кожанного позора, ответ - "+answerString)
+					time.Sleep(4 * time.Second)
+					goto nextQuestion
+				}
+
 			}
-			if vc.CheckAnswer(strings.ToLower(uidText.Text)) {
-				uname := brain.Users[uidText.Uid].Username
-				s.Logger.Info("vector game loop question case of right answer",
-					slog.Int("mumber ", i))
-				c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "правильный атвет, "+uname)
-				rs[uidText.Uid] += vecscore
-				s.FreeMaw.FreeMawVectorUpsertScore(uidText.Uid, num, vecscore)
-				c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, answerString)
-				time.Sleep(4 * time.Second)
-				continue
-			}
-			goto timers
 		}
-		//c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, one+" - "+two+" - "+three)
+	nextQuestion:
+		continue
 	}
 endshpil:
 	gF.VectorGame = false

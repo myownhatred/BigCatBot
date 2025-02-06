@@ -116,9 +116,9 @@ func (mc *MediaCreatorServ) MediaDayOfWeekFile() (file tele.File, err error) {
 
 func (mc *MediaCreatorServ) MediaManulFile() (file tele.File, err error) {
 	//TODO make it configurable
-	// twi - "OtterAnHour"
-	sourses := [9]string{"redpandaeveryhr", "FennecEveryHr",
-		"PossumEveryHour", "ServalEveryHR", "raccoonhourly", "https://scryfall.com/random",
+	// twi - "OtterAnHour" "raccoonhourly"
+	sourses := [8]string{"redpandaeveryhr", "FennecEveryHr",
+		"PossumEveryHour", "ServalEveryHR", "https://scryfall.com/random",
 		"file/manyls", "file/nintendo", "file/japan"}
 	toss := rand.Intn(len(sourses))
 	mc.logger.Info("coin toss result",

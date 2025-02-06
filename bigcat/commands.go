@@ -1021,18 +1021,23 @@ func DnDRollChar(c tele.Context, serv *servitor.Servitor, brain *BigBrain) error
 	ach, title, desc, achID := DNDStatsAchievement(chel.CharStats())
 	message2 := c.Message().Sender.Username + " твой перец(а/я/мы):\n"
 	message2 += chel.Generation
-	message2 += "Вооружон " + string(chel.Weapon.Name) + "\n"
+	message2 += "Вооружон: " + string(chel.Weapon.Name) + "\n"
 	if chel.WeaponOffhand != nil {
-		message2 += "Во второй руке " + string(chel.WeaponOffhand.Name) + "\n"
+		message2 += "Во второй руке: " + string(chel.WeaponOffhand.Name) + "\n"
 	}
 	if chel.Shield != nil {
-		message2 += "щиток " + string(chel.Shield.Name)
+		message2 += "щиток: " + string(chel.Shield.Name)
 	}
 	if chel.WeaponRanged != nil {
-		message2 += "Дальнобойная волына " + string(chel.WeaponRanged.Name) + "\n"
+		message2 += "Дальнобойная волына: " + string(chel.WeaponRanged.Name) + "\n"
 	}
-	message2 += "Адет " + string(chel.Armor.Name) + "\n"
-
+	message2 += "Адет: " + string(chel.Armor.Name) + "\n"
+	if ach == "" && chel.Armor.Name == "Обоссаный халат" {
+		ach = "Человек дождя"
+		title = "Зассыха"
+		desc = "обладатель обоссаного халата"
+		achID = 70
+	}
 	if ach == "" {
 		brain.Party[SenderID] = chel
 		brain.Game.Party[SenderID] = chel
