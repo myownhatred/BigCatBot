@@ -381,8 +381,8 @@ func (bh *BotHandler) CommandHandler(c tele.Context) error {
 		return CmdAnalDailyLog(c, bh.serv, bh.brain)
 	case SaveTheDay:
 		return CmdSaveTheDay(c, bh.serv)
-	case GrokSimpleAnswer:
-		return CmdSimpleAnswer(c, bh.serv, bh.brain)
+	// case GrokSimpleAnswer:
+	// 	return CmdSimpleAnswer(c, bh.serv, bh.brain)
 	case GrokGeneric:
 		return CmdGrokGeneric(c, bh.serv, bh.brain)
 	case GrokConv:
@@ -1109,32 +1109,32 @@ func CmdSaveTheDay(c tele.Context, serv *servitor.Servitor) (err error) {
 
 }
 
-func CmdSimpleAnswer(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
-	if c.Chat().ID != brain.Comfig.ChatsAndPeps.MotherShip {
-		return c.Send("тут нельзя")
-	}
-	if c.Sender().ID != brain.Comfig.ChatsAndPeps.MisterX {
-		cit := brain.Users[c.Sender().ID]
-		cit.GrokToks--
-		brain.Users[c.Sender().ID] = cit
-		if cit.GrokToks <= 0 {
-			return c.Send(fmt.Sprintf("вам нельзя. tokens ostalos %d", cit.GrokToks))
-		}
-	}
+// func CmdSimpleAnswer(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
+// 	if c.Chat().ID != brain.Comfig.ChatsAndPeps.MotherShip {
+// 		return c.Send("тут нельзя")
+// 	}
+// 	if c.Sender().ID != brain.Comfig.ChatsAndPeps.MisterX {
+// 		cit := brain.Users[c.Sender().ID]
+// 		cit.GrokToks--
+// 		brain.Users[c.Sender().ID] = cit
+// 		if cit.GrokToks <= 0 {
+// 			return c.Send(fmt.Sprintf("вам нельзя. tokens ostalos %d", cit.GrokToks))
+// 		}
+// 	}
 
-	c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "грок думает...")
-	report, debug, err := serv.SimpleAnswer(c.Message().Payload)
-	serv.Logger.Info("full grok reply",
-		slog.String("reply", report),
-		slog.String("debug", debug),
-	)
-	brain.DebugString = debug
-	if err != nil {
-		return c.Send(fmt.Sprintf("ошибка обращения к гроку: %v", err))
-	} else {
-		return stringPager(report, c)
-	}
-}
+// 	c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "грок думает...")
+// 	report, debug, err := serv.SimpleAnswer(c.Message().Payload)
+// 	serv.Logger.Info("full grok reply",
+// 		slog.String("reply", report),
+// 		slog.String("debug", debug),
+// 	)
+// 	brain.DebugString = debug
+// 	if err != nil {
+// 		return c.Send(fmt.Sprintf("ошибка обращения к гроку: %v", err))
+// 	} else {
+// 		return stringPager(report, c)
+// 	}
+// }
 
 func CmdGrokConversation(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
 	if c.Chat().ID != brain.Comfig.ChatsAndPeps.MotherShip {

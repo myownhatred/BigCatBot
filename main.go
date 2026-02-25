@@ -63,7 +63,6 @@ func main() {
 		if valerr != nil {
 			panic(valerr)
 		}
-		fmt.Printf("config: %+v\n", comfig)
 	}
 
 	// db init

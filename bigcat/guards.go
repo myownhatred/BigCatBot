@@ -20,7 +20,8 @@ type CommandEntry struct {
 }
 
 var commandRegistry = map[string]CommandEntry{
-	Timers: {Rule: RuleAnyChat, Handler: (*BotHandler).TimersHandler},
+	Timers:           {Rule: RuleAnyChat, Handler: (*BotHandler).TimersHandler},
+	GrokSimpleAnswer: {Rule: RuleMotherShip, Handler: (*BotHandler).GrokSimpleAnswerHandler},
 }
 
 func (bh *BotHandler) checkAccess(c tele.Context, rule AccessRule) bool {
