@@ -1,6 +1,7 @@
 package bringer
 
 import (
+	"Guenhwyvar/config"
 	"Guenhwyvar/entities"
 	"crypto/tls"
 	"encoding/json"
@@ -10,29 +11,28 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/gocolly/colly"
-	"github.com/spf13/viper"
 )
 
 type GetRektResty struct {
 	r *resty.Client
-	v *viper.Viper
+	c *config.AppConfig
 }
 
 type FileState struct {
 	State string `json:"state"`
 }
 
-func NewGetRect(r *resty.Client, v *viper.Viper) *GetRektResty {
+func NewGetRect(r *resty.Client, c *config.AppConfig) *GetRektResty {
 	return &GetRektResty{
 		r: r,
-		v: v,
+		c: c,
 	}
 }
 
 func (rekt *GetRektResty) GetWeatherDayForecast(place string) (report string, err error) {
 	// TODO: make base URL great again
 	OpenWeatherBaseURL := "https://api.openweathermap.org"
-	requestLine := fmt.Sprintf("%s/data/2.5/forecast?q=%s&exclude=minutely&appid=%s&units=metric&lang=ru", OpenWeatherBaseURL, place, rekt.v.GetString("openweathertoken"))
+	requestLine := fmt.Sprintf("%s/data/2.5/forecast?q=%s&exclude=minutely&appid=%s&units=metric&lang=ru", OpenWeatherBaseURL, place, rekt.c.API.OpenWeatherToken)
 	response, err := rekt.r.R().Get(requestLine)
 	if err != nil {
 		return "", fmt.Errorf("error getting weather forecast: %s", err)
@@ -108,7 +108,7 @@ func (rekt *GetRektResty) GetWeatherDayForecast(place string) (report string, er
 func (rekt *GetRektResty) GetCurrentWeather(place string) (report string, err error) {
 	// TODO: make base URL greath again
 	OpenWeatherBaseURL := "https://api.openweathermap.org"
-	requestLine := fmt.Sprintf("%s/data/2.5/weather?q=%s&appid=%s&units=metric&lang=ru", OpenWeatherBaseURL, place, rekt.v.GetString("openweathertoken"))
+	requestLine := fmt.Sprintf("%s/data/2.5/weather?q=%s&appid=%s&units=metric&lang=ru", OpenWeatherBaseURL, place, rekt.c.API.OpenWeatherToken)
 	response, err := rekt.r.R().Get(requestLine)
 	if err != nil {
 		return "", err

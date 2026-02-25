@@ -114,12 +114,14 @@ func (mc *MediaCreatorServ) MediaDayOfWeekFile() (file tele.File, err error) {
 	}
 }
 
-func (mc *MediaCreatorServ) MediaManulFile() (file tele.File, err error) {
+func (mc *MediaCreatorServ) MediaManulFile() (file tele.File, caption string, err error) {
 	//TODO make it configurable
 	// twi - "OtterAnHour" "raccoonhourly"
-	sourses := [8]string{"redpandaeveryhr", "FennecEveryHr",
-		"PossumEveryHour", "ServalEveryHR", "https://scryfall.com/random",
-		"file/manyls", "file/nintendo", "file/japan"}
+	// sourses := [8]string{"redpandaeveryhr", "FennecEveryHr",
+	// 	"PossumEveryHour", "ServalEveryHR", "https://scryfall.com/random",
+	// 	"file/manyls", "file/nintendo", "file/japan"}
+	sourses := [5]string{"https://scryfall.com/random",
+		"file/manyls", "file/bigcats", "file/umumusume", "file/endfield"}
 	toss := rand.Intn(len(sourses))
 	mc.logger.Info("coin toss result",
 		slog.Int("coin ", toss),
@@ -127,10 +129,11 @@ func (mc *MediaCreatorServ) MediaManulFile() (file tele.File, err error) {
 	)
 	switch sourses[toss] {
 	case "file/manyls":
+		capt := "манул"
 		mc.logger.Info("case of manul")
 		files, err := ioutil.ReadDir("./manyls")
 		if err != nil {
-			return file, err
+			return file, capt, err
 		}
 		rand.Seed(time.Now().UnixNano())
 		randIndex := rand.Intn(len(files))
@@ -138,31 +141,46 @@ func (mc *MediaCreatorServ) MediaManulFile() (file tele.File, err error) {
 			slog.String("filename ", files[randIndex].Name()),
 		)
 		file = tele.FromDisk("./manyls/" + files[randIndex].Name())
-		return file, nil
-	case "file/nintendo":
-		mc.logger.Info("case of nintendo")
-		files, err := ioutil.ReadDir("./nintendo")
+		return file, capt, nil
+	case "file/bigcats":
+		capt := "бигкэт"
+		mc.logger.Info("case of bigcats")
+		files, err := ioutil.ReadDir("./bigcats")
 		if err != nil {
-			return file, err
+			return file, capt, err
 		}
 		randIndex := rand.Intn(len(files))
-		mc.logger.Info("nintendo file pic",
+		mc.logger.Info("bigcats file pic",
 			slog.String("filename ", files[randIndex].Name()),
 		)
-		file = tele.FromDisk("./nintendo/" + files[randIndex].Name())
-		return file, nil
-	case "file/japan":
-		mc.logger.Info("case of japan")
-		files, err := ioutil.ReadDir("./japan")
+		file = tele.FromDisk("./bigcats/" + files[randIndex].Name())
+		return file, capt, nil
+	case "file/umumusume":
+		capt := "умамусума"
+		mc.logger.Info("case of umumusume")
+		files, err := ioutil.ReadDir("./umumusume")
 		if err != nil {
-			return file, err
+			return file, capt, err
 		}
 		randIndex := rand.Intn(len(files))
-		mc.logger.Info("japan file pic",
+		mc.logger.Info("umumusume file pic",
 			slog.String("filename ", files[randIndex].Name()),
 		)
-		file = tele.FromDisk("./japan/" + files[randIndex].Name())
-		return file, nil
+		file = tele.FromDisk("./umumusume/" + files[randIndex].Name())
+		return file, capt, nil
+	case "file/endfield":
+		capt := "эндфилд"
+		mc.logger.Info("case of endfield")
+		files, err := ioutil.ReadDir("./endfield")
+		if err != nil {
+			return file, capt, err
+		}
+		randIndex := rand.Intn(len(files))
+		mc.logger.Info("endfield file pic",
+			slog.String("filename ", files[randIndex].Name()),
+		)
+		file = tele.FromDisk("./endfield/" + files[randIndex].Name())
+		return file, capt, nil
 	case "https://scryfall.com/random":
 		mc.logger.Info("case of MTG")
 		filePath, err := mc.rekt.GetRandomMTG()
@@ -170,23 +188,23 @@ func (mc *MediaCreatorServ) MediaManulFile() (file tele.File, err error) {
 			mc.logger.Warn("error getting MTG",
 				slog.String("error message ", err.Error()),
 			)
-			return file, err
+			return file, "мтг", err
 		}
 		mc.logger.Info("MTG url acquired",
 			slog.String("url ", filePath),
 		)
 		file = tele.FromURL(filePath)
-		return file, nil
+		return file, "мтг", nil
 	default:
 		mc.logger.Info("default case twitter",
 			slog.String("source ", sourses[toss]),
 		)
 		filePath, err := mc.twit.TwitterGetHourlyPicture(sourses[toss])
 		if err != nil {
-			return file, err
+			return file, "твиттер", err
 		}
 		file = tele.FromURL(filePath)
-		return file, nil
+		return file, "твиттер", nil
 	}
 
 }

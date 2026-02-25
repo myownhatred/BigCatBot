@@ -3,6 +3,7 @@ package main
 import (
 	"Guenhwyvar/bigcat"
 	"Guenhwyvar/bringer"
+	"Guenhwyvar/config"
 	"Guenhwyvar/servitor"
 	"database/sql"
 	"encoding/json"
@@ -15,9 +16,9 @@ import (
 	"log/slog"
 
 	"github.com/go-resty/resty/v2"
-	twitterscraper "github.com/imperatrona/twitter-scraper"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	twitterscraper "github.com/tbdsux/twitter-scraper"
 	tele "gopkg.in/telebot.v4"
 )
 
@@ -34,23 +35,21 @@ func main() {
 	//	"executing database query",
 	//	slog.String("query", "SELECT * FROM users"),
 	//)
-	logger.Info("aux init started", slog.String("version", "0.1.19"))
+	logger.Info("aux init started")
 
 	scrap := twitterscraper.New()
 	scrap.WithDelay(5)
-
-	f, _ := os.Open("cookies.json")
-	var cookies []*http.Cookie
-	json.NewDecoder(f).Decode(&cookies)
-	scrap.SetCookies(cookies)
-	if scrap.IsLoggedIn() {
-		fmt.Println("Twitter is Ok")
-	}
 
 	configFile := pflag.String("config", "", "Path to config file")
 	pflag.Parse()
 	dodgeViper := viper.New()
 	dodgeViper.BindPFlags(pflag.CommandLine)
+	comfig := &config.AppConfig{}
+
+	if *configFile == "" {
+		fmt.Println("config file is required: --config <path>")
+		os.Exit(1)
+	}
 
 	if *configFile != "" {
 		dodgeViper.SetConfigFile(*configFile)
@@ -59,13 +58,16 @@ func main() {
 			fmt.Printf("Failed to read config file: %v\n", err)
 			os.Exit(1)
 		}
+		dodgeViper.Unmarshal(comfig)
+		valerr := comfig.Validate()
+		if valerr != nil {
+			panic(valerr)
+		}
+		fmt.Printf("config: %+v\n", comfig)
 	}
 
 	// db init
-	psqlString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		dodgeViper.GetString("postgreshost"), dodgeViper.GetString("postgresport"),
-		dodgeViper.GetString("postgresuser"), dodgeViper.GetString("postgrespass"),
-		dodgeViper.GetString("postgresdbname"))
+	psqlString := comfig.Postgres.DSN()
 
 	dbPostgres, err := sql.Open("postgres", psqlString)
 	if err != nil {
@@ -77,12 +79,19 @@ func main() {
 	// close it, just in case
 	defer dbPostgres.Close()
 
-	bringa := bringer.NewBringer(resty.New(), scrap, dodgeViper, dbPostgres, logger)
-	serva := servitor.NewServitor(bringa, logger)
+	f, _ := os.Open(comfig.Twitter.CookieFile)
+	var cookies []*http.Cookie
+	json.NewDecoder(f).Decode(&cookies)
+	scrap.SetCookies(cookies)
+	if scrap.IsLoggedIn() {
+		fmt.Println("Twitter is Ok")
+	}
 
-	value2 := dodgeViper.GetString("telegramtoken")
+	bringa := bringer.NewBringer(resty.New(), scrap, comfig, dbPostgres, logger)
+	serva := servitor.NewServitor(bringa, logger, comfig)
+
 	pref := tele.Settings{
-		Token: value2,
+		Token: comfig.Telegram.TelegramBotToken,
 		Poller: &tele.LongPoller{
 			Timeout: 10 * time.Second,
 			AllowedUpdates: []string{
@@ -100,9 +109,9 @@ func main() {
 		return
 	}
 
-	bigcat := bigcat.New(bot, serva, "start", logger)
+	bigcat := bigcat.New(bot, comfig, serva, "start", logger)
 	bigcat.Start()
 
-	log.Print("service started")
+	logger.Info("service started")
 
 }

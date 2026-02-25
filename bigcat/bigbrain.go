@@ -27,6 +27,8 @@ type BigBrain struct {
 	VectorChan  chan VectorChanS
 	VectorGame  map[int64](freevector.VectorCore)
 	GenTrapMap  map[int64](GeneratorTrap)
+	DebugString string
+	GrokBuffer  string
 }
 
 type VectorChanS struct {
@@ -81,6 +83,8 @@ func NewBigBrain() *BigBrain {
 		VectorChan:  make(chan VectorChanS),
 		VectorGame:  make(map[int64](freevector.VectorCore)),
 		GenTrapMap:  make(map[int64](GeneratorTrap)),
+		DebugString: "",
+		GrokBuffer:  "",
 	}
 }
 

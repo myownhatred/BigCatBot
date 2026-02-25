@@ -155,12 +155,15 @@ func (m *FreeMawPostgres) FreeMawVectorUpsertScore(uid int64, vectorType int, sc
 	`
 
 	_, err := m.db.Exec(query, uid, vectorType, score)
-	m.logger.Error("bringer freemas error - upserting score",
-		slog.String("query", query),
-		slog.Int64("UID", uid),
-		slog.Int("vector type", vectorType),
-		slog.Int("score", score))
-	return fmt.Errorf("error on upsert score: %w", err)
+	if err != nil {
+		m.logger.Error("bringer freemas error - upserting score",
+			slog.String("query", query),
+			slog.Int64("UID", uid),
+			slog.Int("vector type", vectorType),
+			slog.Int("score", score))
+		return fmt.Errorf("error on upsert score: %w", err)
+	}
+	return nil
 }
 
 func (m *FreeMawPostgres) FreeMawVectorGetTopScores(limit int) (scores []entities.VectorScore, err error) {

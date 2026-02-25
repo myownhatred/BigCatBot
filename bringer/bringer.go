@@ -4,17 +4,17 @@ import (
 	"Guenhwyvar/config"
 	"Guenhwyvar/entities"
 	"Guenhwyvar/lib/citizen"
+	"Guenhwyvar/lib/mlog"
 	"database/sql"
 	"log/slog"
 	"time"
 
 	"github.com/go-resty/resty/v2"
 	_ "github.com/lib/pq"
-	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	twitterscraper "github.com/imperatrona/twitter-scraper"
+	twitterscraper "github.com/tbdsux/twitter-scraper"
 )
 
 type WakaStuff interface {
@@ -60,6 +60,7 @@ type Comfiger interface {
 type Twitter interface {
 	TwitterGetVideo(link string) (filePath string, err error)
 	TwitterGetHourlyPicture(acc string) (filePath string, err error)
+	TwitterPostTweet(text string) (link string, err error)
 }
 
 type GetRekt interface {
@@ -84,22 +85,46 @@ type Police interface {
 	GetAllUsers() (allUsers []citizen.Citizen, err error)
 }
 
+type Mesmerizer interface {
+	SaveDailyLog(date time.Time, messages []mlog.Mlog) error
+	SaveSummary(messages []mlog.Mlog, count int) (string, error)
+}
+
+type Grokker interface {
+	AnalChatDay(filename string) (string, error)
+	SimpleAnswer(prompt string) (string, string, error)
+	DNDBiogen(prompt string) (string, string, error)
+	GenGrok(prompt, role string, temp float64) (string, string, error)
+	SendMessageInConversation(chatID int64, content string) (string, error)
+	DeleteConversation(chatID int64)
+}
+
+type Warehouse interface {
+	GetRandomBoyan() (*entities.Boyan, error)
+	GetAllTagsWithCount() ([]entities.TagCount, error)
+	AddTagToPicture(tagID int, pictureID int) error
+	GetTagsForPicture(pictureID int) ([]string, error)
+	SearchBoyansByTag(tag string) ([]entities.Boyan, error)
+}
+
 type Bringer struct {
 	gormPost *gorm.DB
 	db       *sql.DB
 	logger   *slog.Logger
+	comfig   *config.AppConfig
 	WakaStuff
 	Memser
 	AnimeMaw
 	TimeWithOut
 	FreeMaw
-	Comfiger
 	Twitter
 	GetRekt
 	Police
+	Mesmerizer
+	Grokker
 }
 
-func NewBringer(r *resty.Client, scrap *twitterscraper.Scraper, v *viper.Viper, db *sql.DB, logger *slog.Logger) *Bringer {
+func NewBringer(r *resty.Client, scrap *twitterscraper.Scraper, c *config.AppConfig, db *sql.DB, logger *slog.Logger) *Bringer {
 	gormP, err := gorm.Open(postgres.New(postgres.Config{
 		Conn: db,
 	}), &gorm.Config{})
@@ -111,14 +136,16 @@ func NewBringer(r *resty.Client, scrap *twitterscraper.Scraper, v *viper.Viper, 
 		gormPost:    gormP,
 		db:          db,
 		logger:      logger,
-		Comfiger:    NewComfigerViper(v),
-		WakaStuff:   NewWakaStuff(r, v),
+		comfig:      c,
+		WakaStuff:   NewWakaStuff(r, c),
 		Memser:      NewMemserGG(),
 		AnimeMaw:    NewAnimeMawPostgres(gormP, r),
 		TimeWithOut: NewTimeWithOutPostgres(db),
 		FreeMaw:     NewFreeMawPostgres(db, logger),
 		Twitter:     NewTwitterScrapper(scrap),
-		GetRekt:     NewGetRect(r, v),
+		GetRekt:     NewGetRect(r, c),
 		Police:      NewPolicePostgres(db, logger),
+		Mesmerizer:  NewFileMesmerizer("./chatlogs/", "./chatsums/"),
+		Grokker:     NewGrokker(c),
 	}
 }

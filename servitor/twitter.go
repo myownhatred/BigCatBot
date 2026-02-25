@@ -18,3 +18,7 @@ func (t *TwitterServ) TwitterGetVideo(link string) (pathImg string, err error) {
 	id := twitString[1][:19]
 	return t.bringer.TwitterGetVideo(id)
 }
+
+func (t *TwitterServ) TwitterPostTweet(text string) (link string, err error) {
+	return t.bringer.TwitterPostTweet(text)
+}

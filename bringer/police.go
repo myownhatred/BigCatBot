@@ -334,6 +334,7 @@ func (p *PolicePostgres) GetAllUsers() (allUsers []citizen.Citizen, err error) {
 		if err = rows.Scan(&cit.UserID, &cit.Firstname, &cit.Lastname, &cit.Username, &null); err != nil {
 			return nil, fmt.Errorf("error getting single scores row from DB: %w", err)
 		}
+		cit.GrokToks = 10 
 		allUsers = append(allUsers, cit)
 	}
 	return allUsers, nil

@@ -1,15 +1,29 @@
 ---
-wakakey: "key for wakatime api"
-telegramtoken: "obvious telegram token"
-openweathertoken: "token for openweather"
-mothership: -1111111 #chat ID of main chat for critical notifications - group invite for now
-jonchat: -11111112
-misterx: -12345667
-jokepath: "/path/to/dad/joke"
-# postgres credentials and db name
-postgreshost : "127.0.0.1"
-postgresport : "5432"
-postgresuser : "gwp"
-postgrespass : "gwp"
-postgresdbname : "gwp"
-twittercookie: "path/to/twitter/cookie"
+meta:
+  version: "0.20.0"
+  loglevel: "debug"
+chatsandpeps:
+  mothership: -1111111 #chat ID of main chat for critical notifications - group invite for now
+  jonchat: -11111112
+  misterx: -12345667
+  rapgodx: -12344321
+twitter:
+  twittercookie: "path/to/twitter/cookie"
+  delay: 5
+telegram:
+  telegramtoken: "obvious telegram token"
+misc:
+  jokepath: "/path/to/dad/joke"
+api:
+  wakakey: "key for wakatime api"
+  openweathertoken: "token for openweather"
+postgres:
+  postgreshost : "127.0.0.1"
+  postgresport : "5432"
+  postgresuser : "gwp"
+  postgrespass : "gwp"
+  postgresdbname : "gwp"
+  postgressslmode: "disable"
+grok:
+  grokeys: ["keyone", "keytwo"]
+

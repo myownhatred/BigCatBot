@@ -1,6 +1,7 @@
 package bringer
 
 import (
+	"Guenhwyvar/config"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -8,18 +9,17 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/spf13/viper"
 )
 
 type WakaStuffResty struct {
 	r *resty.Client
-	v *viper.Viper
+	c *config.AppConfig
 }
 
-func NewWakaStuff(r *resty.Client, v *viper.Viper) *WakaStuffResty {
+func NewWakaStuff(r *resty.Client, c *config.AppConfig) *WakaStuffResty {
 	return &WakaStuffResty{
 		r: r,
-		v: v,
+		c: c,
 	}
 }
 
@@ -29,7 +29,7 @@ func (w *WakaStuffResty) GetDailyWaka() (string, error) {
 	tomorrow := now.Add(time.Hour * 24)
 	nowString := now.Format(dateFormat)
 	tomorrowString := tomorrow.Format(dateFormat)
-	requestLine := fmt.Sprintf("https://wakatime.com/api/v1/users/current/summaries?start=%s&end=%s&api_key=%s", nowString, tomorrowString, w.v.GetString("wakakey"))
+	requestLine := fmt.Sprintf("https://wakatime.com/api/v1/users/current/summaries?start=%s&end=%s&api_key=%s", nowString, tomorrowString, w.c.API.WakaTimeAPIToken)
 
 	response, err := w.r.R().Get(requestLine)
 	if err != nil {

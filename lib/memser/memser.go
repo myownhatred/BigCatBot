@@ -83,8 +83,8 @@ func DaysToSomething() (string, error) {
 	}
 	dc.SetRGB(0, 0, 0)
 	layout := "2006-01-02"
-	t, _ := time.Parse(layout, "2025-04-21")
-	var strings = []string{"блин блинский", "до светлой пасхи", "осталось"}
+	t, _ := time.Parse(layout, "2025-06-02")
+	var strings = []string{"блин блинский", "до лета", "осталось"}
 	s := strconv.Itoa(int(time.Until(t).Hours() / 24))
 	s += " днёв"
 	strings = append(strings, s)

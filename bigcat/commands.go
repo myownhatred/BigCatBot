@@ -7,6 +7,7 @@ import (
 	dnd "Guenhwyvar/lib/DND"
 	"Guenhwyvar/lib/citizen"
 	"Guenhwyvar/lib/memser"
+	"Guenhwyvar/lib/mlog"
 	freevector "Guenhwyvar/lib/vector"
 	"Guenhwyvar/servitor"
 	"fmt"
@@ -14,6 +15,8 @@ import (
 	"log"
 	"log/slog"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -45,6 +48,7 @@ const (
 	JokeHelp = "/joke"
 	Clear    = "/clear"
 	Ping     = "/ping"
+	Twit     = "/twit"
 	// maws
 	GetAnimeOp = "/getopening"
 	SetAnimeOp = "/setopening"
@@ -58,6 +62,7 @@ const (
 	// timers
 	TimeWithOut = "/timewo"
 	NewTimer    = "/newtimewo"
+	Timers      = "/timers"
 	// dnd stuff
 	RollChar = "/rollcharhard"
 	Party    = "/dndparty"
@@ -99,9 +104,21 @@ const (
 	GenerateNewImage    = "/gen"
 	GetGeneratedImage   = "/genget"
 	GetGenerationStatus = "/genstatus"
+	// summary commands
+	GenerateSummaryFile = "/gensum"
+	GetDailyLog         = "/daysum"
+	AnalDailyLog        = "/analday"
+	SaveTheDay          = "/saveday"
+	//grok
+	GrokSimpleAnswer = "/grok"
+	GrokGeneric      = "/grokgen"
+	GrokConv         = "/grokc"
+	GrokConvDel      = "/grokcd"
+	//debug
+	GetDebugString = "/debug"
 )
 
-func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain *BigBrain, comfig *config.AppConfig, logger *slog.Logger) error {
+func (bh *BotHandler) CommandHandler(c tele.Context) error {
 	username := "АНОНИМ_ЛЕГИВОН"
 	lastname := "Doe"
 	UID := c.Sender().ID
@@ -111,7 +128,7 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 	if c.Sender().LastName != "" {
 		lastname = c.Sender().LastName
 	}
-	logger.Info("incomingtext message",
+	bh.logger.Info("incomingtext message",
 		slog.Int64("chatID:", c.Chat().ID),
 		slog.Int64("userID:", c.Sender().ID),
 		slog.String("username:", username),
@@ -120,27 +137,34 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 		slog.String("message:", c.Message().Text))
 	msgText := strings.Split(c.Message().Text, " ")
 
+	// summary logging
+	if c.Chat().ID == bh.comfig.ChatsAndPeps.MotherShip {
+		bh.serv.MemoryManager.ProcessMessage(mlog.Mlog{
+			Timestamp: time.Now(),
+			MessageId: c.Message().ID,
+			Sender:    username,
+			Content:   c.Message().Text,
+		})
+	}
+
 	// user's cache check
-	cit, ok := brain.Users[UID]
+	cit, ok := bh.brain.Users[UID]
 	if !ok {
-		cit.UserID = UID
-		cit.Username = username
-		cit.Firstname = c.Sender().FirstName
-		cit.Lastname = lastname
-		brain.Users[UID] = cit
+		cit = citizen.NewCitizen(UID, username, c.Sender().FirstName, lastname)
+		bh.brain.Users[UID] = cit
 	}
 
 	// metatron check
 
 	if c.Message().Private() {
 		// check if user is on the bot/metatron list and set metatron flag on
-		if _, ok := brain.UsersFlags[c.Sender().ID]; ok {
-			logger.Info("user found:" + strconv.FormatInt(c.Sender().ID, 10))
-			val := brain.UsersFlags[c.Sender().ID]
+		if _, ok := bh.brain.UsersFlags[c.Sender().ID]; ok {
+			bh.logger.Info("user found:" + strconv.FormatInt(c.Sender().ID, 10))
+			val := bh.brain.UsersFlags[c.Sender().ID]
 			if val.MetatronFordwardFlag {
 				if msgText[0] == "/stop" {
 					val.MetatronFordwardFlag = false
-					brain.UsersFlags[c.Sender().ID] = val
+					bh.brain.UsersFlags[c.Sender().ID] = val
 					return c.Send("остановили форварденг")
 				}
 				r := tele.Reaction{
@@ -155,17 +179,17 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 				return c.ForwardTo(&tele.Chat{ID: val.MetatronChat})
 			}
 		} else {
-			logger.Info("user not found:" + strconv.FormatInt(c.Sender().ID, 10))
+			bh.logger.Info("user not found:" + strconv.FormatInt(c.Sender().ID, 10))
 		}
 	}
 
 	// gen trap
-	gen, ok := brain.GenTrapMap[c.Sender().ID]
+	gen, ok := bh.brain.GenTrapMap[c.Sender().ID]
 	if ok {
 		if gen.ChatID == c.Chat().ID {
 			c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "начинаем генераш, пристегнитесъ")
-			delete(brain.GenTrapMap, c.Sender().ID)
-			err := serv.SendGenerationReq(gen.ModelID, c.Message().Text)
+			delete(bh.brain.GenTrapMap, c.Sender().ID)
+			err := bh.serv.SendGenerationReq(gen.ModelID, c.Message().Text)
 			if err != nil {
 				return c.Send("проблемка: " + err.Error())
 			}
@@ -178,7 +202,7 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 				case <-timeoutChan:
 					return c.Send("ждали вашу генерацию аж 5 минутов, что-то пошло не так пахот")
 				case <-ticker.C:
-					state, err := serv.GetGenerationStatus()
+					state, err := bh.serv.GetGenerationStatus()
 					if err != nil {
 						return c.Send("проблемка: " + err.Error())
 					}
@@ -189,7 +213,7 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 						return c.Send("почему-то больше не генерируем и картинка не нашлась, что-то пошло не так!")
 					}
 					if state == "found" {
-						m, _ := serv.MediaCreator.GeneratorPickup()
+						m, _ := bh.serv.MediaCreator.GeneratorPickup()
 						pho := &tele.Photo{
 							File:    m,
 							Caption: "#aigenerash #model" + strconv.Itoa(gen.ModelID),
@@ -202,16 +226,16 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 		}
 	}
 	// vector check
-	if brain.ChatFlags[c.Chat().ID].VectorGame {
-		vc := brain.VectorGame[c.Chat().ID]
-		logger.Info("vector game checking if message is gamestopper ")
+	if bh.brain.ChatFlags[c.Chat().ID].VectorGame {
+		vc := bh.brain.VectorGame[c.Chat().ID]
+		bh.logger.Info("vector game checking if message is gamestopper ")
 		if c.Message().Text == "/vectorstop" {
 			vc.VectorChan <- freevector.VectorChanS{
 				Uid:  0,
 				Text: "",
 			}
 		}
-		logger.Info("vector game",
+		bh.logger.Info("vector game",
 			slog.String("sending uid and message to game for check, sender ", username))
 
 		vc.VectorChan <- freevector.VectorChanS{
@@ -222,16 +246,15 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 	command := msgText[0]
 	// police checkup
 	// TODO make sane after user cache implementash
-	if !citizen.Ordeal(command, brain.Users[c.Sender().ID]) {
-		logger.Info("bigcat commands",
-			slog.String("forbidden command", command),
-			slog.Int64("userID", c.Sender().ID),
-			slog.String("username", username),
-		)
+	if entry, ok := commandRegistry[command]; ok {
+		if !bh.checkAccess(c, entry.Rule) {
+			return nil
+		}
+		return entry.Handler(bh, c)
 	}
 	// check if link (twitter)
 	if strings.HasPrefix(command, "https://twitter.com") || strings.HasPrefix(command, "https://x.com") {
-		pathVid, err := serv.TwitterGetVideo(command)
+		pathVid, err := bh.serv.TwitterGetVideo(command)
 		if err != nil {
 			return c.Send(err.Error())
 		}
@@ -258,10 +281,10 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 		menu = &tele.ReplyMarkup{RemoveKeyboard: true}
 		return c.Send("чисти-чисти", menu)
 	case Ping:
-		_, err := c.Bot().Send(&tele.Chat{ID: comfig.MotherShip}, "pong")
+		_, err := c.Bot().Send(&tele.Chat{ID: bh.comfig.ChatsAndPeps.MotherShip}, "pong")
 		return err
 	case Meme:
-		return CreateGuiltyCatMeme(c, serv)
+		return CreateGuiltyCatMeme(c, bh.serv)
 	case Hold:
 		return holdmeme(c)
 	case Choice:
@@ -269,87 +292,107 @@ func CommandHandler(c tele.Context, serv *servitor.Servitor, flags *silly, brain
 	case Dilemma:
 		return DilemmaPoll(c)
 	case JokeHelp:
-		return jokeHelp(c, comfig)
+		return jokeHelp(c, bh.comfig)
 	case Progress:
-		return c.Send(serv.GetWakaStuff())
+		return c.Send(bh.serv.GetWakaStuff())
 	case GetAnimeOp:
-		return SendAnimeOp(c, serv)
+		return SendAnimeOp(c, bh.serv)
 	case SetAnimeOp:
-		return AnimeOpUpload(c, flags, serv)
+		return AnimeOpUpload(c, bh.flags, bh.serv)
 	case AnimeMaw:
-		return RandomAnimeMaw(c, serv)
+		return RandomAnimeMaw(c, bh.serv)
 	case MawListInline:
 		return ShowInlineKeys(c)
 	case TimeWithOut:
-		return ShowTimeWithOut(c, serv)
+		return ShowTimeWithOut(c, bh.serv)
 	case NewTimer:
-		return AddNewTimer(c, serv)
+		return AddNewTimer(c, bh.serv)
 	case MawGet:
-		return FreeMawGet(c, serv)
+		return FreeMawGet(c, bh.serv)
 	case MawAdd:
-		return FreeMawAdd(c, serv)
+		return FreeMawAdd(c, bh.serv)
 	case MawRep:
-		return FreeMawRep(c, serv)
+		return FreeMawRep(c, bh.serv)
 	case RollChar:
-		return DnDRollChar(c, serv, brain)
+		return DnDRollChar(c, bh.serv, bh.brain)
 	case Party:
-		return DnDParty(c, serv, brain)
+		return DnDParty(c, bh.serv, bh.brain)
 	case Combat:
-		return DnDCombat(c, serv, brain)
+		return DnDCombat(c, bh.serv, bh.brain)
 	case Attack:
-		return DnDAttack(c, serv, brain)
+		return DnDAttack(c, bh.serv, bh.brain)
 	case Turn:
-		return DnDCombatTurn(c, serv, brain)
+		return DnDCombatTurn(c, bh.serv, bh.brain)
 	case DnDJoin:
-		return DnDJoinActive(c, serv, brain)
+		return DnDJoinActive(c, bh.serv, bh.brain)
 	case DnDStats:
-		return DnDCharStats(c, brain)
+		return DnDCharStats(c, bh.brain)
 	case DnDMF:
-		return DnDCombat2(c, serv, brain)
+		return DnDCombat2(c, bh.serv, bh.brain)
 	case Card:
 		return GetRandomCard(c)
 	case WeatherCurrent:
-		return CmdWeatherCurrent(c, serv)
+		return CmdWeatherCurrent(c, bh.serv)
 	case WeatherForecastDay:
-		return CmdWeatherForecastDay(c, serv)
+		return CmdWeatherForecastDay(c, bh.serv)
 	case GetFreeSteamGames:
-		return CmdGetFreeSteamGames(c, serv)
+		return CmdGetFreeSteamGames(c, bh.serv)
 	case MetatronChatAdd:
-		return CmdMetatronChatAdd(c, serv)
+		return CmdMetatronChatAdd(c, bh.serv)
 	case MetatronChatList:
-		return CmdMetatronChatList(c, serv)
+		return CmdMetatronChatList(c, bh.serv)
 	case MetatronChatSend:
-		return CmdMetatronChatSend(c, serv, username)
+		return CmdMetatronChatSend(c, bh.serv, username)
 	case MetatronChatForward:
-		return CmdMetatronChatForward(c, serv, brain, username)
+		return CmdMetatronChatForward(c, bh.serv, bh.brain, username)
 	case UserAchList:
-		return CmdUserAchList(c, serv)
+		return CmdUserAchList(c, bh.serv)
 	case UserAchAdd:
-		return CmdUserAchAdd(c, serv)
+		return CmdUserAchAdd(c, bh.serv)
 	case CitizenAllSimple:
-		return CmdCitizensAllSimpe(c, brain)
+		return CmdCitizensAllSimpe(c, bh.brain)
 	case CitizenAllSimpleDB:
-		return CmdCitizensAllBase(c, serv)
+		return CmdCitizensAllBase(c, bh.serv)
 	case VectorAddNewType:
-		return CmdVectorAddNewType(c, serv)
+		return CmdVectorAddNewType(c, bh.serv)
 	case VectorGetTypes:
-		return CmdVectorGetTypes(c, serv)
+		return CmdVectorGetTypes(c, bh.serv)
 	case VectorAddNew:
-		return CmdVectorAddNew(c, serv)
+		return CmdVectorAddNew(c, bh.serv)
 	case VectorGame:
-		return CmdVectorGame(c, serv, brain)
+		return CmdVectorGame(c, bh.serv, bh.brain)
 	case VectorGetScores:
-		return CmdVectorGetScores(c, serv, brain)
+		return CmdVectorGetScores(c, bh.serv, bh.brain)
 	case GetPikMenu:
 		return CmdPikMenuMain(c)
 	case GetTestPik:
-		return CmdPikWeekTest(c, serv, brain)
+		return CmdPikWeekTest(c, bh.serv, bh.brain)
 	case GenerateNewImage:
-		return CmdGenerateNewImage(c, serv)
+		return CmdGenerateNewImage(c, bh.serv)
 	case GetGeneratedImage:
-		return CmdGetGeneratedImage(c, serv)
+		return CmdGetGeneratedImage(c, bh.serv)
 	case GetGenerationStatus:
-		return CmdGetGenerationStatus(c, serv)
+		return CmdGetGenerationStatus(c, bh.serv)
+	case GenerateSummaryFile:
+		return CmdGenerateSummaryFile(c, bh.serv)
+	case GetDailyLog:
+		return CmdGetDailyLog(c, bh.serv)
+	case AnalDailyLog:
+		return CmdAnalDailyLog(c, bh.serv, bh.brain)
+	case SaveTheDay:
+		return CmdSaveTheDay(c, bh.serv)
+	case GrokSimpleAnswer:
+		return CmdSimpleAnswer(c, bh.serv, bh.brain)
+	case GrokGeneric:
+		return CmdGrokGeneric(c, bh.serv, bh.brain)
+	case GrokConv:
+		return CmdGrokConversation(c, bh.serv, bh.brain)
+	case GrokConvDel:
+		return CmdGrokConversationDelete(c, bh.serv, bh.brain)
+	case GetDebugString:
+		return CmdGetDebugString(c, bh.brain)
+	case Twit:
+		return CmdTwit(c, bh.serv)
 	default:
 		return nil
 	}
@@ -456,7 +499,7 @@ func holdmeme(c tele.Context) (err error) {
 func jokeHelp(c tele.Context, comfig *config.AppConfig) (err error) {
 	msg := "sting"
 	// TODO make this use filePath
-	data, err := ioutil.ReadFile(comfig.JokePath)
+	data, err := ioutil.ReadFile(comfig.Misc.JokePath)
 	if err != nil {
 		return err
 	}
@@ -995,8 +1038,171 @@ func CmdUserAchAdd(c tele.Context, serv *servitor.Servitor) (err error) {
 	}
 }
 
+func CmdGenerateSummaryFile(c tele.Context, serv *servitor.Servitor) (err error) {
+	filepath, err := serv.GenerateSummary(100)
+	if err != nil {
+		return c.Send(fmt.Sprintf("ошибочка при сохранении файла с логоми: %s", err))
+	}
+	return c.Send(fmt.Sprintf("Файл с логоми сгенерировон: %s", filepath))
+}
+
+func CmdGetDailyLog(c tele.Context, serv *servitor.Servitor) (err error) {
+	// Read directory contents
+	entries, err := os.ReadDir("./chatlogs/")
+	if err != nil {
+		return c.Send("failed to read log directory: %w", err)
+	}
+
+	var latestFile string
+	var latestModTime time.Time
+	var found bool
+	// Iterate through files to find the most recently modified .json file
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		if filepath.Ext(entry.Name()) != ".json" {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil {
+			continue // Skip files with inaccessible metadata
+		}
+		modTime := info.ModTime()
+		if !found || modTime.After(latestModTime) {
+			latestFile = filepath.Join("./chatlogs/", entry.Name())
+			latestModTime = modTime
+			found = true
+		}
+	}
+	// Check if a valid file was found
+	if !found {
+		return c.Send("no .json log files found in logdir")
+	}
+	doc := &tele.Document{
+		File:     tele.FromDisk(latestFile),
+		Caption:  "сборник пиздяжа за прошлый день",
+		FileName: filepath.Base(latestFile),
+	}
+
+	return c.Send(doc)
+
+}
+
+func CmdAnalDailyLog(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
+	report, err := serv.CreateChatDayReport()
+	if err != nil {
+		return c.Send("Проблемес с аналом дня: %v", err)
+	}
+	urlPart := strings.TrimPrefix(strconv.FormatInt(-brain.Comfig.ChatsAndPeps.MotherShip, 10), "100")
+	report = strings.ReplaceAll(report, "msg://", "https://t.me/c/"+urlPart+"/")
+	return stringPager(report, c)
+}
+
+func CmdSaveTheDay(c tele.Context, serv *servitor.Servitor) (err error) {
+	err = serv.SaveTheDay()
+	if err != nil {
+		return c.Send("проблема с сохранекнием дня: %v", err)
+	} else {
+		return c.Send("день спасён")
+	}
+
+}
+
+func CmdSimpleAnswer(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
+	if c.Chat().ID != brain.Comfig.ChatsAndPeps.MotherShip {
+		return c.Send("тут нельзя")
+	}
+	if c.Sender().ID != brain.Comfig.ChatsAndPeps.MisterX {
+		cit := brain.Users[c.Sender().ID]
+		cit.GrokToks--
+		brain.Users[c.Sender().ID] = cit
+		if cit.GrokToks <= 0 {
+			return c.Send(fmt.Sprintf("вам нельзя. tokens ostalos %d", cit.GrokToks))
+		}
+	}
+
+	c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "грок думает...")
+	report, debug, err := serv.SimpleAnswer(c.Message().Payload)
+	serv.Logger.Info("full grok reply",
+		slog.String("reply", report),
+		slog.String("debug", debug),
+	)
+	brain.DebugString = debug
+	if err != nil {
+		return c.Send(fmt.Sprintf("ошибка обращения к гроку: %v", err))
+	} else {
+		return stringPager(report, c)
+	}
+}
+
+func CmdGrokConversation(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
+	if c.Chat().ID != brain.Comfig.ChatsAndPeps.MotherShip {
+		return c.Send("тут нельзя")
+	}
+	c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "грок думает...")
+	report, err := serv.SendMessageInConversation(c.Chat().ID, c.Message().Payload)
+	serv.Logger.Info("full grok reply",
+		slog.String("reply", report),
+	)
+	if err != nil {
+		return c.Send(fmt.Sprintf("ошибка обращения к гроку: %v", err))
+	} else {
+		return stringPager(report, c)
+	}
+}
+
+func CmdGrokConversationDelete(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
+	serv.DeleteConversation(c.Chat().ID)
+	return c.Send("конверсация удалина...")
+}
+
+func CmdGetDebugString(c tele.Context, brain *BigBrain) (err error) {
+	if c.Chat().ID != brain.Comfig.ChatsAndPeps.MotherShip {
+		return c.Send("тут нельзя")
+	}
+	return c.Send(brain.DebugString)
+}
+
+func CmdGrokGeneric(c tele.Context, serv *servitor.Servitor, brain *BigBrain) (err error) {
+	if c.Sender().Username != "Neerlyn" {
+		return c.Send("вам нельяз")
+	}
+	params := strings.Split(c.Message().Payload, "===")
+	if len(params) != 3 {
+		return c.Send("нужно 3 параметра температура, роль и промпт")
+	}
+	for i := range params {
+		params[i] = strings.TrimSpace(params[i])
+	}
+	temp, err := strconv.ParseFloat(params[0], 64)
+	if err != nil {
+		return c.Send(fmt.Errorf("ошибка получения температуры: %v", err))
+	}
+	c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, "грок думает...")
+	report, debug, err := serv.GenGrok(params[2], params[1], temp)
+	serv.Logger.Info("full grok reply",
+		slog.String("reply", report),
+		slog.String("debug", debug),
+	)
+	brain.DebugString = debug
+	if err != nil {
+		return c.Send(fmt.Sprintf("ошибка обращения к гроку: %v", err))
+	} else {
+		return stringPager(report, c)
+	}
+}
+
 func FreeMawRep(c tele.Context, serv *servitor.Servitor) (err error) {
 	return c.Send("report is not awalablash")
+}
+
+func CmdTwit(c tele.Context, serv *servitor.Servitor) (err error) {
+	link, err := serv.TwitterPostTweet(c.Message().Payload)
+	if err != nil {
+		return c.Send("осибка в послании твиттика: %v", err)
+	}
+	return c.Send("успесно отправили твиттер %s", link)
 }
 
 func DnDRollChar(c tele.Context, serv *servitor.Servitor, brain *BigBrain) error {
@@ -1041,6 +1247,11 @@ func DnDRollChar(c tele.Context, serv *servitor.Servitor, brain *BigBrain) error
 	if ach == "" {
 		brain.Party[SenderID] = chel
 		brain.Game.Party[SenderID] = chel
+		bio, _, err := serv.DNDBiogen(message2)
+		if err != nil {
+			serv.Logger.Error(err.Error())
+		}
+		message2 += bio
 		return c.Send(message2)
 	} else {
 		message2 += "Твой титул: " + title + "\n"
@@ -1052,6 +1263,11 @@ func DnDRollChar(c tele.Context, serv *servitor.Servitor, brain *BigBrain) error
 		chel.Title = title
 		brain.Party[SenderID] = chel
 		brain.Game.Party[SenderID] = chel
+		bio, _, err := serv.DNDBiogen(message2)
+		if err != nil {
+			serv.Logger.Error(err.Error())
+		}
+		message2 += bio
 		return c.Send(message2)
 	}
 }
@@ -1408,4 +1624,41 @@ func commandCheck(command string, uid int64, brain *BigBrain) bool {
 
 func forbiddenReply(command string, c tele.Context) error {
 	return c.Send("так как вы не настоящий реппер и goverment corrupt то вам нельзя в команду " + command)
+}
+
+func stringPager(report string, c tele.Context) error {
+	if len(report) > 4000 {
+		msgs := splitByLength(report, 3900)
+		for i := 0; i < len(msgs)-1; i++ {
+			c.Bot().Send(&tele.Chat{ID: c.Chat().ID}, msgs[i])
+		}
+		return c.Send(msgs[len(msgs)-1])
+	} else {
+		return c.Send(report)
+	}
+}
+
+func splitByLength(text string, maxLength int) []string {
+	var chunks []string
+	if len(text) <= maxLength {
+		return []string{text}
+	}
+
+	for len(text) > 0 {
+		if len(text) <= maxLength {
+			chunks = append(chunks, text)
+			break
+		}
+
+		chunk := text[:maxLength]
+		lastSpace := strings.LastIndex(chunk, " ")
+		if lastSpace > 0 {
+			chunk = chunk[:lastSpace]
+		}
+
+		chunks = append(chunks, chunk)
+		text = strings.TrimSpace(text[len(chunk):])
+	}
+
+	return chunks
 }

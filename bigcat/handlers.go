@@ -36,12 +36,10 @@ type BotHandler struct {
 func (bh *BotHandler) AddHandler() {
 	// main chat to send warning to
 	mothership := tele.Chat{
-		ID: bh.comfig.MotherShip,
+		ID: bh.comfig.ChatsAndPeps.MotherShip,
 	}
 
-	bh.tgbot.Handle(tele.OnText, func(c tele.Context) error {
-		return CommandHandler(c, bh.serv, bh.flags, bh.brain, bh.comfig, bh.logger)
-	})
+	bh.tgbot.Handle(tele.OnText, bh.CommandHandler)
 	bh.tgbot.Handle("/start", func(c tele.Context) error {
 		return c.Send("пливет!", menu)
 	})

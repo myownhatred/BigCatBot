@@ -5,6 +5,7 @@ import (
 	"Guenhwyvar/config"
 	"Guenhwyvar/entities"
 	"Guenhwyvar/lib/citizen"
+	"Guenhwyvar/lib/mlog"
 	"log/slog"
 	"time"
 
@@ -52,6 +53,7 @@ type Comfiger interface {
 
 type Twitter interface {
 	TwitterGetVideo(link string) (filePath string, err error)
+	TwitterPostTweet(text string) (link string, err error)
 }
 
 type GetRekt interface {
@@ -64,7 +66,7 @@ type GetRekt interface {
 }
 
 type MediaCreator interface {
-	MediaManulFile() (tele.File, error)
+	MediaManulFile() (tele.File, string, error)
 	MediaDayOfWeekFile() (tele.File, error)
 	RandomFileFromDir(dirPath string) (string, error)
 	GeneratorPickup() (file tele.File, err error)
@@ -81,32 +83,50 @@ type Police interface {
 	GetAllUsers() (allUsers []citizen.Citizen, err error)
 }
 
+type MemoryManager interface {
+	ProcessMessage(message mlog.Mlog) error
+	GenerateSummary(count int) (string, error)
+	SaveTheDay() error
+}
+
+type GrokStuffer interface {
+	CreateChatDayReport() (string, error)
+	SimpleAnswer(prompt string) (string, string, error)
+	DNDBiogen(prompt string) (string, string, error)
+	GenGrok(prompt, role string, temp float64) (string, string, error)
+	SendMessageInConversation(chatID int64, content string) (string, error)
+	DeleteConversation(chatID int64)
+}
+
 type Servitor struct {
 	Logger *slog.Logger
+	comfig *config.AppConfig
 	WakaStuff
 	Memser
 	AnimeMaw
 	FreeMaw
 	TimeWithOut
-	Comfiger
 	Twitter
 	GetRekt
 	MediaCreator
 	Police
+	MemoryManager
+	GrokStuffer
 }
 
-func NewServitor(bringer *bringer.Bringer, logger *slog.Logger) *Servitor {
+func NewServitor(bringer *bringer.Bringer, logger *slog.Logger, comfig *config.AppConfig) *Servitor {
 	return &Servitor{
-		Logger:       logger,
-		WakaStuff:    NewWakaStuffServ(bringer.WakaStuff),
-		Memser:       NewMemserServ(bringer.Memser),
-		AnimeMaw:     NewAnimeMawServ(bringer.AnimeMaw),
-		FreeMaw:      NewFreeMawServ(bringer.FreeMaw),
-		TimeWithOut:  NewTimeWithOutServ(bringer.TimeWithOut),
-		Comfiger:     NewComfigerServ(bringer.Comfiger),
-		Twitter:      NewTwitterServ(bringer.Twitter),
-		GetRekt:      NewGetRectServ(bringer.GetRekt),
-		MediaCreator: NewMediaCreatorServ(bringer.Twitter, bringer.GetRekt, logger),
-		Police:       NewPoliceServ(bringer.Police, logger),
+		Logger:        logger,
+		WakaStuff:     NewWakaStuffServ(bringer.WakaStuff),
+		Memser:        NewMemserServ(bringer.Memser),
+		AnimeMaw:      NewAnimeMawServ(bringer.AnimeMaw),
+		FreeMaw:       NewFreeMawServ(bringer.FreeMaw),
+		TimeWithOut:   NewTimeWithOutServ(bringer.TimeWithOut),
+		Twitter:       NewTwitterServ(bringer.Twitter),
+		GetRekt:       NewGetRectServ(bringer.GetRekt),
+		MediaCreator:  NewMediaCreatorServ(bringer.Twitter, bringer.GetRekt, logger),
+		Police:        NewPoliceServ(bringer.Police, logger),
+		MemoryManager: NewMemoryManagerServ(bringer.Mesmerizer),
+		GrokStuffer:   NewGrokStufferServ(bringer.Grokker),
 	}
 }

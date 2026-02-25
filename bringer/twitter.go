@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"os"
 
-	twitterscraper "github.com/imperatrona/twitter-scraper"
+	twitterscraper "github.com/tbdsux/twitter-scraper"
 )
 
 type TwitterScrapper struct {
@@ -64,4 +64,16 @@ func (s *TwitterScrapper) TwitterGetHourlyPicture(acc string) (filePath string, 
 		count++
 	}
 	return "found nothing", nil
+}
+
+func (s *TwitterScrapper) TwitterPostTweet(text string) (link string, err error) {
+	tw, err := s.s.CreateTweet(twitterscraper.NewTweet{
+		Text:   text,
+		Medias: nil,
+	})
+	if err != nil {
+		return "", fmt.Errorf("error creating tweet: %v", err)
+	}
+
+	return tw.URLs[0], nil
 }
