@@ -56,7 +56,8 @@ type PostgresConfig struct {
 }
 
 type GrokConfig struct {
-	Grokeys []string `mapstructure:"grokeys"`
+	MothershipKey string `mapstructure:"mothershipkey"`
+	DNDKey        string `mapstructure:"dndkey"`
 }
 
 func (p PostgresConfig) DSN() string {
@@ -136,8 +137,8 @@ func (p PostgresConfig) Validate() error {
 }
 
 func (g GrokConfig) Validate() error {
-	if len(g.Grokeys) == 0 {
-		return fmt.Errorf("No grok API-keys provided")
+	if g.MothershipKey == "" {
+		return fmt.Errorf("mothership grok key is required")
 	}
 
 	return nil

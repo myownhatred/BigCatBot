@@ -52,6 +52,7 @@ func New(tgBot *tele.Bot, comfig *config.AppConfig, serv *servitor.Servitor, str
 		clock:    cron.New(cron.WithSeconds()),
 		storage:  str,
 		logger:   logger,
+		comfig:   comfig,
 	}
 }
 

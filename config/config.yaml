@@ -25,5 +25,6 @@ postgres:
   postgresdbname : "gwp"
   postgressslmode: "disable"
 grok:
-  grokeys: ["keyone", "keytwo"]
+  mothershipkey: "key"
+  dndkey: "keytoo"
 

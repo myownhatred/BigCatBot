@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -125,45 +125,8 @@ func NewGrokClient(apiKey string) *GrokClient {
 	}
 }
 
-func (c *GrokClient) ChatCompletion(req *grokRequest) (*grokResponse, error) {
-	req.Stream = false // Enforce non-streaming for this implementation
-
-	jsonData, err := json.Marshal(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request: %w", err)
-	}
-
-	url := c.BaseURL // Assuming endpoint is /chat/completions, similar to OpenAI
-
-	httpReq, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+c.APIKey)
-
-	resp, err := c.Client.Do(httpReq)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API returned non-OK status: %d, body: %s", resp.StatusCode, string(body))
-	}
-
-	var grokResp grokResponse
-	if err := json.NewDecoder(resp.Body).Decode(&grokResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	return &grokResp, nil
-}
-
 func (gc *GrokClient) callGenericGrokAPI(prompt string) (string, string, error) {
-	request := grokRequest{
+	resp, err := gc.doRequest(&grokRequest{
 		Messages: []grokMessage{
 			{
 				Role:    "system",
@@ -178,97 +141,17 @@ func (gc *GrokClient) callGenericGrokAPI(prompt string) (string, string, error) 
 		Stream:      false,
 		MaxTokens:   7000,
 		Temperature: 0.8,
-	}
-	jsonData, err := json.Marshal(request)
+	})
 	if err != nil {
-		return "", "", fmt.Errorf("failed to marshal request: %w", err)
+		return "", "", err
 	}
 
-	req, err := http.NewRequest("POST", gc.BaseURL, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return "", "", fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+gc.APIKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := gc.Client.Do(req)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to send request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return "", "", fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var grokResp grokResponse
-	if err := json.Unmarshal(body, &grokResp); err != nil {
-		return "", "", fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
-	if len(grokResp.Choices) == 0 {
-		return "", "", fmt.Errorf("no response choices returned")
-	}
-
-	// Calculate costs
-	inputCost := float64(grokResp.Usage.PromptTokensDetails.TextTokens+grokResp.Usage.PromptTokensDetails.ImageTokens)*3.00/1_000_000 +
-		float64(grokResp.Usage.PromptTokensDetails.CachedTokens)*0.75/1_000_000
-	outputCost := float64(grokResp.Usage.CompletionTokens) * 15.00 / 1_000_000
-	totalCost := inputCost + outputCost
-
-	output := fmt.Sprintf(`
-	Usage Data:
-  Prompt Tokens: %d
-  Completion Tokens: %d
-  Total Tokens: %d
-  Prompt Tokens Details:
-    Text Tokens: %d
-    Audio Tokens: %d
-    Image Tokens: %d
-    Cached Tokens: %d
-  Completion Tokens Details:
-    Reasoning Tokens: %d
-    Audio Tokens: %d
-    Accepted Prediction Tokens: %d
-    Rejected Prediction Tokens: %d
-  Num Sources Used: %d
-System Fingerprint: %s
-Cost Breakdown:
-  Input Cost: $%.6f
-  Output Cost: $%.6f
-  Total Cost: $%.6f`,
-		grokResp.Usage.PromptTokens,
-		grokResp.Usage.CompletionTokens,
-		grokResp.Usage.TotalTokens,
-		grokResp.Usage.PromptTokensDetails.TextTokens,
-		grokResp.Usage.PromptTokensDetails.AudioTokens,
-		grokResp.Usage.PromptTokensDetails.ImageTokens,
-		grokResp.Usage.PromptTokensDetails.CachedTokens,
-		grokResp.Usage.CompletionTokensDetails.ReasoningTokens,
-		grokResp.Usage.CompletionTokensDetails.AudioTokens,
-		grokResp.Usage.CompletionTokensDetails.AcceptedPredictionTokens,
-		grokResp.Usage.CompletionTokensDetails.RejectedPredictionTokens,
-		grokResp.Usage.NumSourcesUsed,
-		grokResp.SystemFingerprint,
-		inputCost,
-		outputCost,
-		totalCost,
-	)
-
-	return grokResp.Choices[0].Message.Content, output, nil
-
+	return resp.Choices[0].Message.Content, formatUsage(resp), nil
 }
 
 func (gc *GrokClient) callBiogenGrokAPI(prompt string) (string, string, error) {
 	prompt = "создай краткую (не больше 10 предложений) биогафию для данного персонажа:" + prompt
-	request := grokRequest{
+	resp, err := gc.doRequest(&grokRequest{
 		Messages: []grokMessage{
 			{
 				Role:    "system",
@@ -283,96 +166,16 @@ func (gc *GrokClient) callBiogenGrokAPI(prompt string) (string, string, error) {
 		Stream:      false,
 		MaxTokens:   3000,
 		Temperature: 0.9,
-	}
-	jsonData, err := json.Marshal(request)
+	})
 	if err != nil {
-		return "", "", fmt.Errorf("failed to marshal request: %w", err)
+		return "", "", err
 	}
 
-	req, err := http.NewRequest("POST", gc.BaseURL, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return "", "", fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+gc.APIKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := gc.Client.Do(req)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to send request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return "", "", fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var grokResp grokResponse
-	if err := json.Unmarshal(body, &grokResp); err != nil {
-		return "", "", fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
-	if len(grokResp.Choices) == 0 {
-		return "", "", fmt.Errorf("no response choices returned")
-	}
-
-	// Calculate costs
-	inputCost := float64(grokResp.Usage.PromptTokensDetails.TextTokens+grokResp.Usage.PromptTokensDetails.ImageTokens)*3.00/1_000_000 +
-		float64(grokResp.Usage.PromptTokensDetails.CachedTokens)*0.75/1_000_000
-	outputCost := float64(grokResp.Usage.CompletionTokens) * 15.00 / 1_000_000
-	totalCost := inputCost + outputCost
-
-	output := fmt.Sprintf(`
-	Usage Data:
-  Prompt Tokens: %d
-  Completion Tokens: %d
-  Total Tokens: %d
-  Prompt Tokens Details:
-    Text Tokens: %d
-    Audio Tokens: %d
-    Image Tokens: %d
-    Cached Tokens: %d
-  Completion Tokens Details:
-    Reasoning Tokens: %d
-    Audio Tokens: %d
-    Accepted Prediction Tokens: %d
-    Rejected Prediction Tokens: %d
-  Num Sources Used: %d
-System Fingerprint: %s
-Cost Breakdown:
-  Input Cost: $%.6f
-  Output Cost: $%.6f
-  Total Cost: $%.6f`,
-		grokResp.Usage.PromptTokens,
-		grokResp.Usage.CompletionTokens,
-		grokResp.Usage.TotalTokens,
-		grokResp.Usage.PromptTokensDetails.TextTokens,
-		grokResp.Usage.PromptTokensDetails.AudioTokens,
-		grokResp.Usage.PromptTokensDetails.ImageTokens,
-		grokResp.Usage.PromptTokensDetails.CachedTokens,
-		grokResp.Usage.CompletionTokensDetails.ReasoningTokens,
-		grokResp.Usage.CompletionTokensDetails.AudioTokens,
-		grokResp.Usage.CompletionTokensDetails.AcceptedPredictionTokens,
-		grokResp.Usage.CompletionTokensDetails.RejectedPredictionTokens,
-		grokResp.Usage.NumSourcesUsed,
-		grokResp.SystemFingerprint,
-		inputCost,
-		outputCost,
-		totalCost,
-	)
-
-	return grokResp.Choices[0].Message.Content, output, nil
-
+	return resp.Choices[0].Message.Content, formatUsage(resp), nil
 }
 
 func (gc *GrokClient) callParGrokAPI(prompt, role string, temp float64) (string, string, error) {
-	request := grokRequest{
+	resp, err := gc.doRequest(&grokRequest{
 		Messages: []grokMessage{
 			{
 				Role:    "system",
@@ -387,97 +190,17 @@ func (gc *GrokClient) callParGrokAPI(prompt, role string, temp float64) (string,
 		Stream:      false,
 		MaxTokens:   3000,
 		Temperature: temp,
-	}
-	jsonData, err := json.Marshal(request)
+	})
 	if err != nil {
-		return "", "", fmt.Errorf("failed to marshal request: %w", err)
+		return "", "", err
 	}
 
-	req, err := http.NewRequest("POST", gc.BaseURL, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return "", "", fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+gc.APIKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := gc.Client.Do(req)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to send request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return "", "", fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var grokResp grokResponse
-	if err := json.Unmarshal(body, &grokResp); err != nil {
-		return "", "", fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
-	if len(grokResp.Choices) == 0 {
-		return "", "", fmt.Errorf("no response choices returned")
-	}
-
-	// Calculate costs
-	inputCost := float64(grokResp.Usage.PromptTokensDetails.TextTokens+grokResp.Usage.PromptTokensDetails.ImageTokens)*3.00/1_000_000 +
-		float64(grokResp.Usage.PromptTokensDetails.CachedTokens)*0.75/1_000_000
-	outputCost := float64(grokResp.Usage.CompletionTokens) * 15.00 / 1_000_000
-	totalCost := inputCost + outputCost
-
-	output := fmt.Sprintf(`
-	Usage Data:
-  Prompt Tokens: %d
-  Completion Tokens: %d
-  Total Tokens: %d
-  Prompt Tokens Details:
-    Text Tokens: %d
-    Audio Tokens: %d
-    Image Tokens: %d
-    Cached Tokens: %d
-  Completion Tokens Details:
-    Reasoning Tokens: %d
-    Audio Tokens: %d
-    Accepted Prediction Tokens: %d
-    Rejected Prediction Tokens: %d
-  Num Sources Used: %d
-System Fingerprint: %s
-Cost Breakdown:
-  Input Cost: $%.6f
-  Output Cost: $%.6f
-  Total Cost: $%.6f`,
-		grokResp.Usage.PromptTokens,
-		grokResp.Usage.CompletionTokens,
-		grokResp.Usage.TotalTokens,
-		grokResp.Usage.PromptTokensDetails.TextTokens,
-		grokResp.Usage.PromptTokensDetails.AudioTokens,
-		grokResp.Usage.PromptTokensDetails.ImageTokens,
-		grokResp.Usage.PromptTokensDetails.CachedTokens,
-		grokResp.Usage.CompletionTokensDetails.ReasoningTokens,
-		grokResp.Usage.CompletionTokensDetails.AudioTokens,
-		grokResp.Usage.CompletionTokensDetails.AcceptedPredictionTokens,
-		grokResp.Usage.CompletionTokensDetails.RejectedPredictionTokens,
-		grokResp.Usage.NumSourcesUsed,
-		grokResp.SystemFingerprint,
-		inputCost,
-		outputCost,
-		totalCost,
-	)
-
-	return grokResp.Choices[0].Message.Content, output, nil
-
+	return resp.Choices[0].Message.Content, formatUsage(resp), nil
 }
 
 // callGrokAPI makes a request to Grok API
 func (gc *GrokClient) callGrokAPI(prompt string) (string, error) {
-	request := grokRequest{
+	resp, err := gc.doRequest(&grokRequest{
 		Messages: []grokMessage{
 			{
 				Role:    "system",
@@ -492,47 +215,12 @@ func (gc *GrokClient) callGrokAPI(prompt string) (string, error) {
 		Stream:      false,
 		MaxTokens:   8000,
 		Temperature: 0.5,
-	}
-
-	jsonData, err := json.Marshal(request)
+	})
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal request: %w", err)
+		return "", err
 	}
 
-	req, err := http.NewRequest("POST", gc.BaseURL, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return "", fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+gc.APIKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := gc.Client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("failed to send request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var grokResp grokResponse
-	if err := json.Unmarshal(body, &grokResp); err != nil {
-		return "", fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
-	if len(grokResp.Choices) == 0 {
-		return "", fmt.Errorf("no response choices returned")
-	}
-
-	return grokResp.Choices[0].Message.Content, nil
+	return resp.Choices[0].Message.Content, nil
 }
 
 // formatMessagesForAnalysis converts messages to a readable format
@@ -651,13 +339,9 @@ func (g *GrokGrokker) SendMessageInConversation(chatID int64, content string) (s
 
 	client := g.Grik
 
-	resp, err := client.ChatCompletion(req)
+	resp, err := client.doRequest(req)
 	if err != nil {
 		return "", err
-	}
-
-	if len(resp.Choices) == 0 {
-		return "", fmt.Errorf("no choices in response")
 	}
 
 	assistantContent := resp.Choices[0].Message.Content
@@ -684,6 +368,49 @@ func (g *GrokGrokker) DeleteConversation(chatID int64) {
 	delete(g.convs, chatID)
 }
 
+func (gc *GrokClient) doRequest(req *grokRequest) (*grokResponse, error) {
+	req.Stream = false
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("marshal: %w", err)
+	}
+	httpReq, err := http.NewRequest("POST", gc.BaseURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+gc.APIKey)
+
+	resp, err := gc.Client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("status %d: %s", resp.StatusCode, body)
+	}
+
+	var result grokResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("result decode: %w", err)
+	}
+	if len(result.Choices) == 0 {
+		return nil, fmt.Errorf("no choices in responce")
+	}
+
+	return &result, nil
+}
+
+func formatUsage(r *grokResponse) string {
+	inputCost := float64(r.Usage.PromptTokensDetails.TextTokens+r.Usage.PromptTokensDetails.ImageTokens)*3.00/1_000_000 +
+		float64(r.Usage.PromptTokensDetails.CachedTokens)*0.75/1_000_000
+	outputCost := float64(r.Usage.CompletionTokens) * 15.00 / 1_000_000
+	return fmt.Sprintf("tokens: %d prompt / %d completion, cost: $%.6f",
+		r.Usage.PromptTokens, r.Usage.CompletionTokens, inputCost+outputCost)
+}
+
 type GrokGrokker struct {
 	Grik    *GrokClient
 	GrikDND *GrokClient
@@ -692,16 +419,15 @@ type GrokGrokker struct {
 }
 
 func NewGrokker(c *config.AppConfig) *GrokGrokker {
-	keys := c.Grok.Grokeys
 	return &GrokGrokker{
-		Grik:    NewGrokClient(keys[1]),
-		GrikDND: NewGrokClient(keys[0]),
+		Grik:    NewGrokClient(c.Grok.MothershipKey),
+		GrikDND: NewGrokClient(c.Grok.DNDKey),
 		convs:   make(map[int64]*Conversation),
 	}
 }
 
 func (g *GrokGrokker) AnalChatDay(filename string) (string, error) {
-	file, err := ioutil.ReadFile(filename)
+	file, err := os.ReadFile(filename)
 	if err != nil {
 		return "", err
 	}

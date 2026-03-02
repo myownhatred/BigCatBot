@@ -69,6 +69,9 @@ func (m *AnimeMawPostgres) GetRandomOpening(typ string) (opening entities.AnimeO
 }
 
 func GetRandomOpeningByTyp(typ string, db *gorm.DB) (opening entities.AnimeOpening, err error) {
+	if typ != "anime" {
+		return opening, fmt.Errorf("wrong maw typ provided")
+	}
 	err = db.Raw(fmt.Sprintf("SELECT id, description, link FROM %s ORDER BY random() LIMIT 1", typ)).Scan(&opening).Error
 	if err != nil {
 		return opening, err
